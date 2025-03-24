@@ -12,7 +12,7 @@ export interface ClienteCSV {
   CELULAR: string;
   TELEFONO?: string;
   OFICINA?: string;
-  PAQUETE?: string;
+  PAQUETE?: string | number;
   TOTAL?: number;
   NOMBRE_ASESOR?: string;
   ULT_VISITA?: string;
@@ -66,7 +66,12 @@ const mapearClienteCSVaCliente = (clienteCSV: ClienteCSV, index: number): Client
     }
   }
 
-  // El resto del código permanece igual...
+  // Conservar el formato original del PAQUETE sin modificar
+  let paqueteFormateado: string | undefined = undefined;
+  if (clienteCSV.PAQUETE !== null && clienteCSV.PAQUETE !== undefined) {
+    // Simplemente convertir a string manteniendo el formato original
+    paqueteFormateado = String(clienteCSV.PAQUETE);
+  }
 
   return {
     id: index + 1, // Asignar un ID secuencial
@@ -80,7 +85,7 @@ const mapearClienteCSVaCliente = (clienteCSV: ClienteCSV, index: number): Client
     telefono: clienteCSV.TELEFONO ? clienteCSV.TELEFONO.toString() : undefined,
     tOficina: clienteCSV.OFICINA ? clienteCSV.OFICINA.toString() : undefined,
     cloudtalk: undefined, // No está en el CSV, se calculará después
-    paquete: clienteCSV.PAQUETE ? clienteCSV.PAQUETE.toString() : undefined,
+    paquete: paqueteFormateado,
     orden: clienteCSV.ORDEN,
     total: clienteCSV.TOTAL,
     aps: clienteCSV.NOMBRE_ASESOR || '',
@@ -89,13 +94,43 @@ const mapearClienteCSVaCliente = (clienteCSV: ClienteCSV, index: number): Client
   };
 };
 
-// Función para cargar datos desde un archivo CSV local
-export const cargarDatosCSV = async (): Promise<Cliente[]> => {
-  try {
-    // Intenta por todos los medios posibles cargar el archivo
-    console.log('Intentando cargar el archivo CSV...');
+export const extraerListasDelCSV = (datos: ClienteCSV[]): {
+  modelos: string[];
+  años: string[];
+  asesores: string[];
+} => {
+  // Extraer modelos únicos
+  const modelos = Array.from(new Set(
+    datos.map(cliente => cliente.Modelo || '')
+  )).filter(Boolean).sort();
 
-    // Forma directa (usando ruta relativa desde public)
+  // Extraer años únicos
+  const años = Array.from(new Set(
+    datos.map(cliente => 
+      cliente.ANIO_VIN ? cliente.ANIO_VIN.toString() : ''
+    )
+  )).filter(Boolean).sort((a, b) => b.localeCompare(a)); // Ordenar descendente (más reciente primero)
+
+  // Extraer asesores únicos
+  const asesores = Array.from(new Set(
+    datos.map(cliente => cliente.NOMBRE_ASESOR || '')
+  )).filter(Boolean).sort();
+
+  return { modelos, años, asesores };
+};
+
+// Función para cargar datos desde un archivo CSV local
+export const cargarDatosCSV = async (): Promise<{
+  clientes: Cliente[];
+  modelos: string[];
+  años: string[];
+  asesores: string[];
+}> => {
+  try {
+    // Intentamos cargar el archivo CSV desde la carpeta public
+    console.log('Intentando cargar el archivo CSV desde public/urcsv.csv...');
+    
+    // Para aplicaciones Vite/React, los archivos en public son accesibles en la raíz
     let response;
 
     try {
@@ -146,9 +181,10 @@ export const cargarDatosCSV = async (): Promise<Cliente[]> => {
     const resultado = await new Promise<Papa.ParseResult<ClienteCSV>>((resolve, reject) => {
       Papa.parse<ClienteCSV>(csvText, {
         header: true,
-        dynamicTyping: true,
+        dynamicTyping: false, // Cambio a false para evitar la conversión automática de tipos
         skipEmptyLines: true,
         complete: (result) => {
+          // No modificamos los valores PAQUETE, los dejamos tal cual vienen en el CSV
           console.log(`CSV parseado exitosamente. ${result.data.length} filas encontradas.`);
           resolve(result);
         },
@@ -165,17 +201,21 @@ export const cargarDatosCSV = async (): Promise<Cliente[]> => {
       throw new Error('El CSV no contiene datos');
     }
 
+    // Extraer las listas de datos únicos
+    const { modelos, años, asesores } = extraerListasDelCSV(resultado.data);
+
     // Mapear los datos CSV al formato Cliente
     const clientes = resultado.data
       .filter(row => row.SERIE) // Filtrar filas sin serie
       .map(mapearClienteCSVaCliente);
 
     console.log(`Se han mapeado ${clientes.length} registros de clientes.`);
-    return clientes;
+    console.log(`Se han extraído ${modelos.length} modelos, ${años.length} años y ${asesores.length} asesores.`);
+    
+    // Devolver todo en un solo objeto
+    return { clientes, modelos, años, asesores };
   } catch (error) {
     console.error('Error final al cargar o procesar el CSV:', error);
-
-    // En lugar de devolver datos de ejemplo, lanzamos el error para manejarlo en la UI
     throw error;
   }
 };

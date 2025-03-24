@@ -39,182 +39,12 @@ type APSType = {
   [key: string]: boolean;
 };
 
-// Sample data structure
-
-
-// Lista de modelos según las imágenes proporcionadas
-const modelosNissan = [
-  'VERSA',
-  'NP300',
-  'SENTRA',
-  'MARCH',
-  'TSURU',
-  'TIIDA',
-  'FRONTIER',
-  'X-TRAIL',
-  'ALTIMA',
-  'PATHFINDER',
-  'URVAN',
-  'NV350',
-  'TITAN',
-  'KICKS',
-  'ROGUE',
-  'NOTE',
-  'MAXIMA',
-  'JUKE',
-  'NV2500',
-  'ARMADA',
-  'MURANO',
-  'CABSTAR',
-  '240SX'
-];
-
-// Lista de años modelo
-const añosModelo = [
-  '2025',
-  '2024',
-  '2023',
-  '2022',
-  '2021',
-  '2020',
-  '2019',
-  '2018',
-  '2017',
-  '2016',
-  '2015',
-  '2014'
-];
-
-// Lista de asesores APS
-const asesorAPS = [
-  'APS VIRTUAL',
-  'AARON ALFARO COTA',
-  'AARON VASQUEZ',
-  'ABELARDO MOLINA V.',
-  'ABELARDO MOLINA VALDEZ',
-  'ABRAHAM GUERRERO M.',
-  'ALBERTO VAZQUEZ MARTINEZ',
-  'ALDO FRANCISCO GUTIERREZ VAZ...',
-  'ALEJANDRA ABIGAIL MORENO',
-  'ALEXIS GARCIA',
-  'ANA CRISTINA BONILLA ESCOBAR',
-  'APS VIRTUAL',
-  'ARMANDO RIVERA PIRI',
-  'ASESOR VIRTUAL',
-  'ASESOR VIRTUAL MAG',
-  'BERNARDO HODA...',
-  'BRENDA JOSELYN CORONEL LOPEZ',
-  'CARLOS HECTOR RUBIO RUIZ',
-  'CARLOS RUBIO',
-  'CINTHIA MUNGUIA NUNEZ',
-  'CLAUDIA ANGELICA MARTINEZ JIM...',
-  'CUAHUTEMOC GALINDO LEOS',
-  'DAGOBERTO DOMINGUEZ DURAN',
-  'DAVID ENRIQUE HERNANDEZ CAMP...',
-  'DENISSE SAIZA URIAS',
-  'DEYANIRA ELIZABETH RODRIGUEZ',
-  'DIANA ZULEMA',
-  'DULCE BERENICE ALTAMIRANO OL...',
-  'DULCE MELYNA SILVA LEYVA',
-  'EDUARDO COBOS MARTINEZ',
-  'ENRIQUE MORENO PRECIADO',
-  'ESTHEFANIA INDA BRACAMONTES',
-  'FABIAN LOPEZ PALOMARES',
-  'FERNANDO ENRIQUE GARCIA BUITI...',
-  'FRANCISCA SINIA SOTO JIMENEZ',
-  'FRANCISCO DE JESUS NAVARRO G...',
-  'FRANCISCO JAVIER VALLES VARGAS',
-  'FRANCISCO ROMAN GARCIA PARE...',
-  'FRANCYS FIGUEROA SANTACRUZ',
-  'GABRIEL ANGULO RIOS',
-  'GRECIA CHAVEZ TAPIA',
-  'GRECIA KAROLINA VALADEZ HERDEZ',
-  'GRECIA KAROLINA VALADEZ HERN...',
-  'GUADALUPE ARAGON PARRA',
-  'HECTOR NOE HERNANDEZ MORENO',
-  'HECTOR SALVADOR RODRIGUEZ VA...',
-  'HOMAR ALEJANDRO OLIVAS QUIN...',
-  'HOMAR ALEJANDRO OLIVAS QUINT...',
-  'HUGO RUIZ NAVARRETE',
-  'JAQUELINE MENDOZA RODRIGUEZ',
-  'JESUS EDUARDO MENDEZ MENA',
-  'JESUS LEONARDO LOPEZ FUENTES',
-  'JHOSELYN NATHALY BELTRAN FLOR...',
-  'JORGE CORDOVA',
-  'JOSE ANTONIO SANCHEZ ALVARAD...',
-  'JOSE DE JESUS MIRANDA NAVARRO',
-  'JOSE LUIS LUJAN APARICIO',
-  'JOSGAR OBED LOPEZ FUENTES',
-  'JUAN CARLOS LEON',
-  'JUAN JESUS GALVEZ MONTANO',
-  'JUAN JESUS GALVEZ MONTAñO',
-  'JUDITH MILAGROS GALLEGOS MO...',
-  'KAREN RIVERA ROMAN',
-  'KARIME JAIDAR AVILA',
-  'LEONARDO ALBERTO PALOMARES',
-  'LISSETH LOPEZ MARTINEZ',
-  'LIZETH VALENCIA MENDEZ',
-  'LUCIA FAUSTO MEDINA',
-  'LUIS ALBERTO TAPIA ACOSTA',
-  'LUIS ANGEL FISHER ESCOBEDO',
-  'MARCO ANTONIO MENDEZ VALDEZ',
-  'MARIA GABRIELA CASTILLO ROSAS',
-  'MARIA GLORIA GPE RAMIREZ LOPEZ',
-  'MARIA ISABEL CELAYA VEGA',
-  'MARITZA MARTINEZ FRASQUILLO',
-  'MARLENE LOPEZ LAURO',
-  'MARTIN EDUARDO BAY ARELLANO',
-  'MAYRA JAQUELINE GARIBAY FELIX',
-  'MIGUEL ANGEL CORDOVA LEON',
-  'MILEYDI MERLIN ARAUJO MANRIQU...',
-  'NALLELY LOPEZ',
-  'NOELIA GUADALUPE TANORI CABR...',
-  'NOELIA GUADALUPE TANORI CABREA',
-  'ODALYS GABRIELA YANEZ MIRANDA',
-  'ODALYS YANEZ',
-  'PAOLA FELIX RUBIO',
-  'PAUL RUELAS SOSA',
-  'RAMON SERVANDO RUIZ ESQUER',
-  'RICARDO HERNANDEZ',
-  'RICARDO MORENO OBESO',
-  'RODRIGO GARCIA REYES',
-  'ROSA ANDREA DURAZO AVALOS',
-  'RUBI ADILENE FLORES ESTRELLA',
-  'SANDRA PATRICIA VELDUCEA DIAZ',
-  'SAUL ISAC LIZARRAGA MEZA',
-  'SERGIO FIGUEROA',
-  'TERESA EVANGELINA GASTELUM BA...',
-  'TERESA ITZEL SERRANO JARILLO',
-  'VANNIA TERESITA MENDEZ MENDO...',
-  'VERONICA GISSELLE SALAS GUZM...',
-  'VICTOR ESTEBAN SALAZAR FLORES',
-  'YEIMI KAROL LARA FERREYRA',
-  'YESENIA MAZON',
-  'YESSENIA MAZON',
-  'YEZENIA RIVAS AMAYA'
-];
-
 // Función para verificar si un campo está vacío o solo contiene espacios
 const isEmpty = (value?: string): boolean => {
   return !value || value.trim() === '';
 };
 
-const determinaCloudTalk = (cliente: Cliente): string => {
-  // Verificar celular primero
-  if (!isEmpty(cliente.celular)) {
-    return `+${cliente.celular}`;
-  }
-  // Si no hay celular, verificar teléfono
-  if (!isEmpty(cliente.telefono)) {
-    return `+${cliente.telefono}`;
-  }
-  // Si no hay teléfono, verificar T. oficina
-  if (!isEmpty(cliente.tOficina)) {
-    return `+${cliente.tOficina}`;
-  }
-  // Si no hay ninguno, mostrar guión
-  return '-';
-};
+
 
 const formatearFechaTabla = (fecha: Date): string => {
   if (!fecha) return "-";
@@ -235,6 +65,9 @@ function App() {
   const [posicionMenu, setPosicionMenu] = useState({ top: 0, left: 0, width: 0 });
   const [mostrarFiltroPaquete, setMostrarFiltroPaquete] = useState<boolean>(false);
   const [mostrarFiltroAPS, setMostrarFiltroAPS] = useState<boolean>(false);
+  const [modelosDisponibles, setModelosDisponibles] = useState<string[]>([]);
+  const [añosDisponibles, setAñosDisponibles] = useState<string[]>([]);
+  const [asesoresDisponibles, setAsesoresDisponibles] = useState<string[]>([]);
 
   // @ts-ignore
   const [minDiasSinVisita, setMinDiasSinVisita] = useState<number>(0);
@@ -268,14 +101,9 @@ function App() {
     const fetchData = async () => {
       try {
         console.log("Iniciando carga de datos CSV...");
-        const datos = await cargarDatosCSV();
-        console.log("Datos cargados:", datos.length, "registros");
-        setClientesData(datos);
-
-        // Si se cargaron datos, actualiza los filtros
-        if (datos.length > 0) {
-          // Aquí puedes agregar lógica para actualizar tus filtros basados en los datos
-        }
+        const { clientes } = await cargarDatosCSV();
+        console.log("Datos cargados:", clientes.length, "registros");
+        setClientesData(clientes);
       } catch (error) {
         console.error('Error al cargar los datos:', error);
       }
@@ -291,25 +119,78 @@ function App() {
 
       try {
         console.log("Iniciando carga de datos CSV...");
-        const datos = await cargarDatosCSV();
-        console.log("Datos cargados:", datos.length, "registros");
-        setClientesData(datos);
+        const { clientes, modelos, años, asesores } = await cargarDatosCSV();
 
-        // Actualizar las agencias disponibles
-        if (datos.length > 0) {
-          const agencias = Array.from(new Set(datos.map(cliente => cliente.agencia)))
-            .filter(agencia => agencia)
-            .sort();
-          setAgenciasDisponibles(agencias);
+        console.log("Datos cargados:", clientes.length, "registros");
+        setClientesData(clientes);
 
-          // Actualizar los paquetes disponibles
-          const paquetes = Array.from(new Set(datos.map(cliente => cliente.paquete || 'null')))
-            .filter(paquete => paquete)
-            .sort();
-          setPaquetesDisponibles(paquetes);
+        console.log("Muestra de primeros 5 registros:");
+        clientes.slice(0, 5).forEach((cliente, idx) => {
+          console.log(`Cliente ${idx + 1}:`, {
+            id: cliente.id,
+            agencia: cliente.agencia,
+            modelo: cliente.modelo,
+            año: cliente.año,
+            paquete: cliente.paquete,
+            aps: cliente.aps,
+            diasSinVenir: cliente.diasSinVenir
+          });
+        });
 
-          // Podrías también actualizar años, modelos, etc. si lo necesitas
-        }
+        // Actualizar las listas disponibles con los datos del CSV
+        setModelosDisponibles(modelos);
+        setAñosDisponibles(años);
+        setAsesoresDisponibles(asesores);
+
+        // Actualizar las agencias disponibles con normalización
+        const agencias = Array.from(new Set(clientes.map(cliente =>
+          cliente.agencia ? cliente.agencia.trim() : ''
+        )))
+          .filter(agencia => agencia)
+          .sort();
+
+        setAgenciasDisponibles(agencias);
+
+        // Inicializar las agencias seleccionadas con los valores reales
+        setAgenciasSeleccionadas(_ => {
+          const nuevo: AgenciasType = {};
+          agencias.forEach(agencia => {
+            nuevo[agencia] = true;
+          });
+          return nuevo;
+        });
+
+        // Actualizar los paquetes disponibles
+        const paquetes = Array.from(new Set(clientes.map(cliente => cliente.paquete || 'null')))
+          .filter(paquete => paquete)
+          .sort();
+        setPaquetesDisponibles(paquetes);
+
+        // Inicializar los estados de selección para incluir todos los elementos
+        setModelosSeleccionados(_ => {
+          const nuevo: { [key: string]: boolean } = {};
+          modelos.forEach(modelo => {
+            nuevo[modelo] = true;
+          });
+          return nuevo;
+        });
+
+        setAñosSeleccionados(_ => {
+          const nuevo: { [key: string]: boolean } = {};
+          años.forEach(año => {
+            nuevo[año] = true;
+          });
+          return nuevo;
+        });
+
+        setAPSSeleccionados(_ => {
+          const nuevo: { [key: string]: boolean } = {};
+          asesores.forEach(asesor => {
+            nuevo[asesor] = true;
+          });
+          return nuevo;
+        });
+
       } catch (error) {
         console.error('Error al cargar los datos:', error);
         setErrorCarga(error instanceof Error ? error.message : 'Error desconocido al cargar datos');
@@ -323,14 +204,9 @@ function App() {
 
 
   // Inicializar el estado de los asesores APS seleccionados
-  const [apsSeleccionados, setAPSSeleccionados] = useState<APSType>(() => {
-    const inicial: APSType = {};
-    asesorAPS.forEach(aps => {
-      inicial[aps] = true;
-    });
-    return inicial;
-  });
+  const [apsSeleccionados, setAPSSeleccionados] = useState<APSType>({});
 
+  // @ts-ignore
   const [agenciasDisponibles, setAgenciasDisponibles] = useState<string[]>([
     'AGUA PRIETA', 'CABORCA', 'GRANAUTO', 'GUAYMAS', 'MAGDALENA', 'NISSAUTO', 'NOGALES', 'MORELOS'
   ]);
@@ -346,7 +222,6 @@ function App() {
   // Lista de paquetes disponibles actualizada - Incluye todos los paquetes de los datos
   // Estado para los paquetes disponibles
   const [paquetesDisponibles, setPaquetesDisponibles] = useState<string[]>([
-    'null', 'BN1', 'BN2', 'BN3', 'SEL', 'SM1', 'SM2', 'SM3', 'SM4'
   ]);
 
   useEffect(() => {
@@ -380,22 +255,12 @@ function App() {
   });
 
   // Estado para los modelos seleccionados
-  const [modelosSeleccionados, setModelosSeleccionados] = useState<{ [key: string]: boolean }>(() => {
-    const inicial: { [key: string]: boolean } = {};
-    modelosNissan.forEach(modelo => {
-      inicial[modelo] = true;
-    });
-    return inicial;
-  });
+  const [modelosSeleccionados, setModelosSeleccionados] = useState<{ [key: string]: boolean }>({});
+
 
   // Estado para los años seleccionados
-  const [añosSeleccionados, setAñosSeleccionados] = useState<{ [key: string]: boolean }>(() => {
-    const inicial: { [key: string]: boolean } = {};
-    añosModelo.forEach(año => {
-      inicial[año] = true;
-    });
-    return inicial;
-  });
+  const [añosSeleccionados, setAñosSeleccionados] = useState<{ [key: string]: boolean }>({});
+
 
   // Función para manejar los cambios en los checkboxes de paquete
   const handlePaqueteCheckbox = (paquete: string) => {
@@ -403,6 +268,50 @@ function App() {
       ...prev,
       [paquete]: !prev[paquete]
     }));
+  };
+
+  // Función para formatear números telefónicos
+  const formatearTelefono = (numero?: string | number): string => {
+    if (!numero) return '-';
+
+    // Convertir a string y quitar formato científico
+    let numeroStr = String(numero);
+
+    // Si es notación científica, convertirla
+    if (numeroStr.includes('E+') || numeroStr.includes('e+')) {
+      numeroStr = Number(numeroStr).toLocaleString('fullwide', { useGrouping: false });
+    }
+
+    // Si el número es muy largo (como 10 dígitos o más), darle formato
+    if (numeroStr.length >= 10) {
+      // Ejemplo: 5261234567 -> 526-123-4567
+      return numeroStr.replace(/(\d{3})(\d{3})(\d{4})$/, '$1-$2-$3');
+    }
+
+    return numeroStr;
+  };
+
+  const determinaCloudTalk = (cliente: Cliente): string => {
+    // Verificar celular primero
+    if (!isEmpty(cliente.celular)) {
+      const numero = formatearTelefono(cliente.celular);
+      return numero !== '-' ? `+${numero}` : '-';
+    }
+
+    // Si no hay celular, verificar teléfono
+    if (!isEmpty(cliente.telefono)) {
+      const numero = formatearTelefono(cliente.telefono);
+      return numero !== '-' ? `+${numero}` : '-';
+    }
+
+    // Si no hay teléfono, verificar T. oficina
+    if (!isEmpty(cliente.tOficina)) {
+      const numero = formatearTelefono(cliente.tOficina);
+      return numero !== '-' ? `+${numero}` : '-';
+    }
+
+    // Si no hay ninguno, mostrar guión
+    return '-';
   };
 
   // Función para manejar los cambios en los checkboxes de APS
@@ -501,10 +410,8 @@ function App() {
       left: botonRect.left + window.scrollX,
       width: botonRect.width
     });
-
     // Cerrar otros filtros si están abiertos
     cerrarTodosFiltros();
-
     setMostrarFiltroPaquete(!mostrarFiltroPaquete);
   };
 
@@ -518,10 +425,8 @@ function App() {
       left: botonRect.left + window.scrollX,
       width: botonRect.width
     });
-
     // Cerrar otros filtros si están abiertos
     cerrarTodosFiltros();
-
     setMostrarFiltroAPS(!mostrarFiltroAPS);
   };
 
@@ -532,6 +437,79 @@ function App() {
     });
     setAgenciasSeleccionadas(nuevasAgencias);
   };
+
+  // Función para filtrar los clientes Agencia
+  const filtrarClientes = () => {
+    console.log("Filtrando clientes...");
+    console.log("Total de clientes:", clientesData.length);
+    console.log("Agencias seleccionadas:", agenciasSeleccionadas);
+    console.log("Modelos seleccionados:", modelosSeleccionados);
+    console.log("Años seleccionados:", añosSeleccionados);
+
+    const filtrados = clientesData.filter(cliente => {
+      // Filtro por agencia
+      const agenciaCliente = cliente.agencia ? cliente.agencia.trim() : '';
+      if (agenciaCliente === '') {
+        return false;
+      }
+
+      let agenciaEncontrada = false;
+      for (const [agenciaKey, seleccionada] of Object.entries(agenciasSeleccionadas)) {
+        if (seleccionada && agenciaCliente.toUpperCase() === agenciaKey.toUpperCase()) {
+          agenciaEncontrada = true;
+          break;
+        }
+      }
+
+      if (!agenciaEncontrada) {
+        return false;
+      }
+
+      // Filtro por modelo
+      const modeloCliente = cliente.modelo ? cliente.modelo.trim() : '';
+      if (modeloCliente === '') {
+        return false;
+      }
+
+      let modeloEncontrado = false;
+      for (const [modeloKey, seleccionado] of Object.entries(modelosSeleccionados)) {
+        if (seleccionado && modeloCliente.toUpperCase() === modeloKey.toUpperCase()) {
+          modeloEncontrado = true;
+          break;
+        }
+      }
+
+      if (!modeloEncontrado) {
+        return false;
+      }
+
+      // Filtro por año modelo
+      const añoCliente = cliente.año ? cliente.año.toString() : '';
+      if (añoCliente === '') {
+        return false;
+      }
+
+      let añoEncontrado = false;
+      for (const [añoKey, seleccionado] of Object.entries(añosSeleccionados)) {
+        if (seleccionado && añoCliente === añoKey) {
+          añoEncontrado = true;
+          break;
+        }
+      }
+
+      if (!añoEncontrado) {
+        return false;
+      }
+
+      // Si pasa todos los filtros, incluir el cliente
+      return true;
+    });
+
+    console.log("Clientes filtrados:", filtrados.length);
+    return filtrados;
+  };
+  // Variable para almacenar los clientes filtrados
+  const clientesFiltrados = filtrarClientes();
 
   // Función para seleccionar solamente un modelo
   const handleSolamenteModelo = (modelo: string) => {
@@ -797,7 +775,7 @@ function App() {
       claseBoton += "bg-blue-100 ";
     }
 
-    
+
     return (
       <button
         key={`day-${dia}-${esCalendarioInicio ? 'inicio' : 'fin'}`}
@@ -970,7 +948,7 @@ function App() {
                 }}
               >
                 <div className="p-2">
-                  {modelosNissan.map((modelo) => (
+                  {modelosDisponibles.map((modelo) => (
                     <div key={modelo} className="flex items-center justify-between py-1">
                       <div className="flex items-center">
                         <input
@@ -1025,7 +1003,7 @@ function App() {
                 }}
               >
                 <div className="p-2">
-                  {añosModelo.map((año) => (
+                  {añosDisponibles.map((año) => (
                     <div key={año} className="flex items-center justify-between py-1">
                       <div className="flex items-center">
                         <input
@@ -1135,7 +1113,7 @@ function App() {
                 }}
               >
                 <div className="p-2">
-                  {asesorAPS.map((aps) => (
+                  {asesoresDisponibles.map((aps) => (
                     <div key={aps} className="flex items-center justify-between py-1">
                       <div className="flex items-center">
                         <input
@@ -1464,8 +1442,8 @@ function App() {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {clientesData.length > 0 ? (
-                    clientesData.slice(0, 200).map((item, index) => (
+                  {clientesFiltrados.length > 0 ? (
+                    clientesFiltrados.slice(0, 200).map((item, index) => (
                       <tr key={item.id} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 sticky left-0 bg-inherit z-10">
                           {item.id}
@@ -1492,19 +1470,21 @@ function App() {
                           {item.agencia}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {item.celular}
+                          {formatearTelefono(item.celular)}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {!isEmpty(item.telefono) ? item.telefono : '-'}
+                          {formatearTelefono(item.telefono)}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {!isEmpty(item.tOficina) ? item.tOficina : '-'}
+                          {formatearTelefono(item.tOficina)}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                           {determinaCloudTalk(item)}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {item.paquete && item.paquete !== 'null' ? item.paquete : '-'}
+                          {item.paquete && item.paquete !== 'null' ?
+                            (isNaN(Number(item.paquete)) ? item.paquete : item.paquete.padStart(3, '0'))
+                            : '-'}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                           {item.orden || '—'}
@@ -1534,7 +1514,7 @@ function App() {
           <div className="px-6 py-3 border-t border-gray-200 bg-gray-50">
             <div className="flex items-center justify-between">
               <div className="text-sm text-gray-500">
-                1 - {Math.min(clientesData.length, 2500)} / {clientesData.length}
+                1 - {Math.min(clientesFiltrados.length, 200)} / {clientesData.length}
               </div>
               <div className="flex items-center space-x-2">
                 <button className="px-3 py-1 border border-gray-300 rounded-md text-sm">
