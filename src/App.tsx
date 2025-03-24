@@ -199,7 +199,22 @@ const isEmpty = (value?: string): boolean => {
   return !value || value.trim() === '';
 };
 
-
+const determinaCloudTalk = (cliente: Cliente): string => {
+  // Verificar celular primero
+  if (!isEmpty(cliente.celular)) {
+    return `+${cliente.celular}`;
+  }
+  // Si no hay celular, verificar teléfono
+  if (!isEmpty(cliente.telefono)) {
+    return `+${cliente.telefono}`;
+  }
+  // Si no hay teléfono, verificar T. oficina
+  if (!isEmpty(cliente.tOficina)) {
+    return `+${cliente.tOficina}`;
+  }
+  // Si no hay ninguno, mostrar guión
+  return '-';
+};
 
 const formatearFechaTabla = (fecha: Date): string => {
   if (!fecha) return "-";
@@ -210,7 +225,7 @@ const formatearFechaTabla = (fecha: Date): string => {
 };
 
 function App() {
-
+  // Estados para la carga de datos
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [errorCarga, setErrorCarga] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState<string>('');
@@ -782,6 +797,7 @@ function App() {
       claseBoton += "bg-blue-100 ";
     }
 
+    
     return (
       <button
         key={`day-${dia}-${esCalendarioInicio ? 'inicio' : 'fin'}`}
@@ -792,6 +808,7 @@ function App() {
       </button>
     );
   };
+
 
   if (isLoading) {
     return (
@@ -1393,7 +1410,7 @@ function App() {
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="sticky top-0 bg-gray-50 z-10">
                   <tr>
-                    <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider sticky left-0 z-20">
+                    <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider sticky left-0 top-0 z-20">
                       #
                     </th>
                     <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -1448,8 +1465,7 @@ function App() {
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {clientesData.length > 0 ? (
-                    // Mostrar los primeros 10 registros sin ningún filtro para verificar que hay datos
-                    clientesData.slice(0, 10).map((item, index) => (
+                    clientesData.slice(0, 200).map((item, index) => (
                       <tr key={item.id} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 sticky left-0 bg-inherit z-10">
                           {item.id}
@@ -1485,10 +1501,10 @@ function App() {
                           {!isEmpty(item.tOficina) ? item.tOficina : '-'}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {!isEmpty(item.cloudtalk) ? `+${item.cloudtalk}` : `+${item.celular}`}
+                          {determinaCloudTalk(item)}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {item.paquete || 'null'}
+                          {item.paquete && item.paquete !== 'null' ? item.paquete : '-'}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                           {item.orden || '—'}

@@ -1,5 +1,6 @@
 import Papa from 'papaparse';
 
+// En CsvDataService.ts, modifica la interfaz ClienteCSV
 export interface ClienteCSV {
   ORDEN: number;
   SERIE: string;
@@ -16,6 +17,7 @@ export interface ClienteCSV {
   NOMBRE_ASESOR?: string;
   ULT_VISITA?: string;
   DIAS_NOSHOW?: number;
+  FECHA_FAC?: string; // Añade esta línea
 }
 
 export interface Cliente {
@@ -41,16 +43,30 @@ export interface Cliente {
 const mapearClienteCSVaCliente = (clienteCSV: ClienteCSV, index: number): Cliente => {
   // Convertir fecha de última visita a objeto Date si existe
   let ultimaVisita: Date | undefined = undefined;
-  if (clienteCSV.ULT_VISITA) {
+  
+  // Primero intentamos con FECHA_FAC
+  if (clienteCSV.FECHA_FAC) {
     // Formato esperado: DD/MM/YYYY
-    const partes = clienteCSV.ULT_VISITA.split('/');
+    const partes = clienteCSV.FECHA_FAC.split('/');
     if (partes.length === 3) {
       const dia = parseInt(partes[0], 10);
       const mes = parseInt(partes[1], 10) - 1; // Los meses en JavaScript son 0-indexed
       const año = parseInt(partes[2], 10);
       ultimaVisita = new Date(año, mes, dia);
     }
+  } 
+  // Si no hay FECHA_FAC, intentamos con ULT_VISITA (mantener compatibilidad)
+  else if (clienteCSV.ULT_VISITA) {
+    const partes = clienteCSV.ULT_VISITA.split('/');
+    if (partes.length === 3) {
+      const dia = parseInt(partes[0], 10);
+      const mes = parseInt(partes[1], 10) - 1;
+      const año = parseInt(partes[2], 10);
+      ultimaVisita = new Date(año, mes, dia);
+    }
   }
+
+  // El resto del código permanece igual...
 
   return {
     id: index + 1, // Asignar un ID secuencial
@@ -78,30 +94,30 @@ export const cargarDatosCSV = async (): Promise<Cliente[]> => {
   try {
     // Intenta por todos los medios posibles cargar el archivo
     console.log('Intentando cargar el archivo CSV...');
-    
+
     // Forma directa (usando ruta relativa desde public)
     let response;
-    
+
     try {
       response = await fetch('/urcsv.csv');
       if (!response.ok) throw new Error(`Error HTTP: ${response.status}`);
     } catch (e) {
       console.error('Error al cargar el CSV desde /urcsv.csv:', e);
-      
+
       try {
         // Alternativa 1: Ruta relativa con ./
         response = await fetch('./urcsv.csv');
         if (!response.ok) throw new Error(`Error HTTP: ${response.status}`);
       } catch (e2) {
         console.error('Error al cargar el CSV desde ./urcsv.csv:', e2);
-        
+
         try {
           // Alternativa 2: Ruta sin / inicial
           response = await fetch('urcsv.csv');
           if (!response.ok) throw new Error(`Error HTTP: ${response.status}`);
         } catch (e3) {
           console.error('Error al cargar el CSV desde urcsv.csv:', e3);
-          
+
           // Si estamos usando Vite, intentar con la carpeta assets
           try {
             response = await fetch('/src/assets/urcsv.csv');
@@ -113,19 +129,19 @@ export const cargarDatosCSV = async (): Promise<Cliente[]> => {
         }
       }
     }
-    
+
     // Si llegamos aquí, tenemos una respuesta válida
     console.log('Archivo CSV cargado exitosamente.');
     const csvText = await response.text();
-    
+
     // Verificar que el contenido sea realmente un CSV y no un HTML
     if (csvText.trim().startsWith('<!doctype html>') || csvText.trim().startsWith('<html>')) {
       console.error('El contenido devuelto es HTML, no un CSV');
       throw new Error('El contenido devuelto es HTML, no un CSV');
     }
-    
+
     console.log('Primeros 200 caracteres del CSV:', csvText.substring(0, 200));
-    
+
     // Parsear el CSV con PapaParse
     const resultado = await new Promise<Papa.ParseResult<ClienteCSV>>((resolve, reject) => {
       Papa.parse<ClienteCSV>(csvText, {
@@ -142,23 +158,23 @@ export const cargarDatosCSV = async (): Promise<Cliente[]> => {
         }
       });
     });
-    
+
     // Verificar si hay datos
     if (resultado.data.length === 0) {
       console.error('El CSV se parseó correctamente pero no contiene datos.');
       throw new Error('El CSV no contiene datos');
     }
-    
+
     // Mapear los datos CSV al formato Cliente
     const clientes = resultado.data
       .filter(row => row.SERIE) // Filtrar filas sin serie
       .map(mapearClienteCSVaCliente);
-    
+
     console.log(`Se han mapeado ${clientes.length} registros de clientes.`);
     return clientes;
   } catch (error) {
     console.error('Error final al cargar o procesar el CSV:', error);
-    
+
     // En lugar de devolver datos de ejemplo, lanzamos el error para manejarlo en la UI
     throw error;
   }
