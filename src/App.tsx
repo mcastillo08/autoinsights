@@ -1,10 +1,30 @@
-// App.tsx
 import React from 'react';
 import './index.css';
 import logo from './logo.png';
 
 const App: React.FC = () => {
-  // Datos de ejemplo combinados con todos los campos
+  // Estado para almacenar la fecha actual
+  const [currentDateTime, setCurrentDateTime] = React.useState<Date>(new Date());
+
+  // Efecto para actualizar la fecha cada minuto
+  React.useEffect(() => {
+    setCurrentDateTime(new Date());
+    const intervalId = setInterval(() => {
+      setCurrentDateTime(new Date());
+    }, 60000);
+    return () => clearInterval(intervalId);
+  }, []);
+
+  // Formato para mostrar la fecha
+  currentDateTime.toLocaleString('es-MX', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false
+  })
   const clientes = [
     {
       id: "2501",
@@ -108,9 +128,9 @@ const App: React.FC = () => {
       {/* Header con logo */}
       <header className="flex items-center justify-between p-4 bg-white border-b">
         <div className="flex items-center">
-          <img 
-            src={logo} 
-            alt="Grupo Auto Logo" 
+          <img
+            src={logo}
+            alt="Grupo Auto Logo"
             className="h-10 mr-3"
           />
           <div>
@@ -118,7 +138,7 @@ const App: React.FC = () => {
             <p className="text-sm text-gray-600">3.2 Extractor de BD.</p>
           </div>
         </div>
-        
+
         <div className="flex items-center space-x-4">
           <div className="flex items-center">
             <span className="mr-2">Serie</span>
@@ -135,7 +155,7 @@ const App: React.FC = () => {
               </div>
             </div>
           </div>
-          
+
           <div className="flex items-center">
             <span className="mr-2">Días sin venir a taller</span>
             <div className="flex items-center">
@@ -146,7 +166,7 @@ const App: React.FC = () => {
           </div>
         </div>
       </header>
-      
+
       <main className="container mx-auto px-4 py-6">
         {/* Barra de filtros */}
         <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-8 gap-4 mb-6">
@@ -159,7 +179,7 @@ const App: React.FC = () => {
               <option value="GRANAUTO">GRANAUTO</option>
             </select>
           </div>
-          
+
           <div className="relative">
             <select className="block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm">
               <option value="">Modelo</option>
@@ -169,7 +189,7 @@ const App: React.FC = () => {
               <option value="KICKS">KICKS</option>
             </select>
           </div>
-          
+
           <div className="relative">
             <select className="block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm">
               <option value="">Año modelo</option>
@@ -179,7 +199,7 @@ const App: React.FC = () => {
               <option value="2021">2021</option>
             </select>
           </div>
-          
+
           <div className="relative">
             <select className="block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm">
               <option value="">Paquete</option>
@@ -190,32 +210,32 @@ const App: React.FC = () => {
               <option value="PRO">PRO</option>
             </select>
           </div>
-          
+
           <div className="relative">
             <select className="block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm">
               <option value="">APS</option>
             </select>
           </div>
-          
+
           <div className="relative">
             <select className="block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm">
               <option value="">Selecciona un período</option>
             </select>
           </div>
-          
+
           <div className="relative">
             <select className="block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm">
               <option value="">Nombre de factura</option>
             </select>
           </div>
-          
+
           <div className="relative">
             <select className="block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm">
               <option value="">Celular</option>
             </select>
           </div>
         </div>
-        
+
         {/* Tabla con desplazamiento horizontal - combinando ambas estructuras */}
         <div className="bg-white shadow-sm rounded-lg">
           <div className="overflow-x-auto">
@@ -266,7 +286,7 @@ const App: React.FC = () => {
               </tbody>
             </table>
           </div>
-          
+
           <div className="bg-white px-6 py-3 border-t border-gray-200 flex items-center justify-between">
             <div className="text-sm text-gray-700">
               2501 - 5000 / 62368
@@ -285,10 +305,19 @@ const App: React.FC = () => {
             </div>
           </div>
         </div>
-        
+
         {/* Pie de página con fecha de actualización */}
+        {/* Pie de página con fecha de actualización dinámica */}
         <div className="mt-4 text-xs text-gray-500">
-          Fecha de la última actualización: 24/3/2025 18:07:13 | Política de Privacidad
+          Fecha de la última actualización: {currentDateTime.toLocaleString('es-MX', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: false
+          })} | <a href="#" className="text-blue-600 hover:underline">Política de Privacidad</a>
         </div>
       </main>
     </div>
