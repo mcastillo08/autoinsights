@@ -445,6 +445,8 @@ function App() {
     console.log("Agencias seleccionadas:", agenciasSeleccionadas);
     console.log("Modelos seleccionados:", modelosSeleccionados);
     console.log("Años seleccionados:", añosSeleccionados);
+    console.log("Paquetes seleccionados:", paquetesSeleccionados);
+    console.log("APS seleccionados:", apsSeleccionados);
 
     const filtrados = clientesData.filter(cliente => {
       // Filtro por agencia
@@ -452,7 +454,6 @@ function App() {
       if (agenciaCliente === '') {
         return false;
       }
-
       let agenciaEncontrada = false;
       for (const [agenciaKey, seleccionada] of Object.entries(agenciasSeleccionadas)) {
         if (seleccionada && agenciaCliente.toUpperCase() === agenciaKey.toUpperCase()) {
@@ -460,7 +461,6 @@ function App() {
           break;
         }
       }
-
       if (!agenciaEncontrada) {
         return false;
       }
@@ -470,7 +470,6 @@ function App() {
       if (modeloCliente === '') {
         return false;
       }
-
       let modeloEncontrado = false;
       for (const [modeloKey, seleccionado] of Object.entries(modelosSeleccionados)) {
         if (seleccionado && modeloCliente.toUpperCase() === modeloKey.toUpperCase()) {
@@ -478,7 +477,6 @@ function App() {
           break;
         }
       }
-
       if (!modeloEncontrado) {
         return false;
       }
@@ -488,7 +486,6 @@ function App() {
       if (añoCliente === '') {
         return false;
       }
-
       let añoEncontrado = false;
       for (const [añoKey, seleccionado] of Object.entries(añosSeleccionados)) {
         if (seleccionado && añoCliente === añoKey) {
@@ -496,12 +493,70 @@ function App() {
           break;
         }
       }
-
       if (!añoEncontrado) {
         return false;
       }
 
-      // Si pasa todos los filtros, incluir el cliente
+      // REEMPLAZA DESDE AQUÍ - FILTRO DE PAQUETE
+      // Filtro por paquete
+      if (cliente.paquete) {
+        // Normalizar el paquete del cliente (eliminar espacios adicionales y convertir a mayúsculas)
+        const paqueteCliente = cliente.paquete.toString().trim().toUpperCase();
+
+        // Verificar si este paquete está seleccionado
+        let paqueteEncontrado = false;
+        for (const [paqueteKey, seleccionado] of Object.entries(paquetesSeleccionados)) {
+          // Si el paquete está seleccionado y coincide con el del cliente
+          if (seleccionado && paqueteKey.toUpperCase() === paqueteCliente) {
+            paqueteEncontrado = true;
+            break;
+          }
+        }
+
+        if (!paqueteEncontrado) {
+          // El paquete del cliente no está entre los seleccionados
+          console.log(`Cliente ${cliente.id} rechazado por paquete: ${cliente.paquete}`);
+          return false;
+        }
+      } else if (!paquetesSeleccionados['null']) {
+        // El cliente no tiene paquete y "null" no está seleccionado
+        console.log(`Cliente ${cliente.id} rechazado porque no tiene paquete`);
+        return false;
+      }
+     
+      // Filtro por APS
+      if (cliente.aps) {
+        // Normalizar el APS del cliente
+        const apsCliente = cliente.aps.toString().trim().toUpperCase();
+        // Verificar si este APS está seleccionado
+        let apsEncontrado = false;
+        for (const [apsKey, seleccionado] of Object.entries(apsSeleccionados)) {
+          if (seleccionado && apsKey.toUpperCase() === apsCliente) {
+            apsEncontrado = true;
+            break;
+          }
+        }
+
+        if (!apsEncontrado) {
+          // El APS del cliente no está entre los seleccionados
+          console.log(`Cliente ${cliente.id} rechazado por APS: ${cliente.aps}`);
+          return false;
+        }
+      } else {
+        // El cliente no tiene APS asignado, verificar si "ASESOR VIRTUAL" está seleccionado
+        let asesorVirtualEncontrado = false;
+        for (const [apsKey, seleccionado] of Object.entries(apsSeleccionados)) {
+          if (seleccionado && apsKey.toUpperCase() === "ASESOR VIRTUAL") {
+            asesorVirtualEncontrado = true;
+            break;
+          }
+        }
+
+        if (!asesorVirtualEncontrado) {
+          console.log(`Cliente ${cliente.id} rechazado porque no tiene APS y ASESOR VIRTUAL no está seleccionado`);
+          return false;
+        }
+      }
       return true;
     });
 
