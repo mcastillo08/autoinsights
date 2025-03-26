@@ -215,7 +215,7 @@ function App() {
   const [mostrarFiltroPaquete, setMostrarFiltroPaquete] = useState<boolean>(false);
   const [mostrarFiltroAPS, setMostrarFiltroAPS] = useState<boolean>(false);
   const [paquetesDisponibles, setPaquetesDisponibles] = useState<string[]>([
-    'null', 'BN1', 'BN2', 'BN3', 'SEL', 'SM1', 'SM2', 'SM3', 'SM4'
+    'null', 'BN1', 'BN2', 'BN3', 'SEL', 'SM1', 'SM2', 'SM3', 'SM4', '1', '001'
   ]);
   const [agenciasDisponibles, setAgenciasDisponibles] = useState<string[]>([
     'AGUA PRIETA', 'CABORCA', 'GRANAUTO', 'GUAYMAS', 'MAGDALENA', 'NISSAUTO', 'NOGALES', 'MORELOS'
@@ -249,10 +249,6 @@ function App() {
   const [selectorAñoFin, setSelectorAñoFin] = useState<number>(new Date().getFullYear());
 
 
-  // Esto debería estar después de la definición de tus estados
-  // Cerca de la línea 150-180 en tu archivo App.tsx
-
-
 
   // Función para cargar datos paginados
   const cargarDatosPaginados = useCallback(async (pagina: number) => {
@@ -261,90 +257,37 @@ function App() {
       console.log(`Cargando página ${pagina} de datos...`);
       const resultado = await obtenerClientesPaginados(pagina, itemsPerPage);
 
-      // La clave del problema está aquí - necesitamos asegurarnos de que la longitud
-      // de clientesData esté en sintonía con la página solicitada
-      const paginaEsperada = Math.ceil(clientesData.length / itemsPerPage);
-
-      // Si la página solicitada es mayor que la que deberíamos tener, algo está mal
-      if (pagina > paginaEsperada + 1) {
-        console.error(`Error de sincronización: Intentando cargar página ${pagina} cuando solo tenemos datos para ${paginaEsperada} páginas`);
-        // Cargar la página correcta
-        const resultadoCorregido = await obtenerClientesPaginados(paginaEsperada + 1, itemsPerPage);
-
-        if (pagina === 1) {
-          // Si es la primera página, reemplazamos los datos
-          setClientesData(resultadoCorregido.clientes as Cliente[]);
-        } else {
-          // Asegurarnos de que no duplicamos datos
-          const ultimoIDActual = clientesData.length > 0 ? clientesData[clientesData.length - 1].id : 0;
-          const nuevosDatos = resultadoCorregido.clientes.filter(cliente => cliente.id > ultimoIDActual);
-
-          if (nuevosDatos.length > 0) {
-            setClientesData(prevData => [...prevData, ...nuevosDatos]);
-            console.log(`Se agregaron ${nuevosDatos.length} nuevos registros`);
-          } else {
-            console.warn(`No se encontraron nuevos registros para agregar. Verificando si hay datos duplicados.`);
-            // Intentar con la siguiente página
-            const siguientePagina = paginaEsperada + 2;
-            const resultadoSiguiente = await obtenerClientesPaginados(siguientePagina, itemsPerPage);
-            const nuevosDatosSiguiente = resultadoSiguiente.clientes.filter(cliente =>
-              !clientesData.some(c => c.id === cliente.id)
-            );
-
-            if (nuevosDatosSiguiente.length > 0) {
-              setClientesData(prevData => [...prevData, ...nuevosDatosSiguiente]);
-              console.log(`Se agregaron ${nuevosDatosSiguiente.length} nuevos registros de la siguiente página`);
-            } else {
-              console.error(`No se pudieron cargar nuevos datos después de intentar con dos páginas.`);
-            }
-          }
-        }
+      if (pagina === 1) {
+        // Si es la primera página, reemplazamos los datos
+        setClientesData(resultado.clientes);
       } else {
-        // Procesamiento normal
-        if (pagina === 1) {
-          // Si es la primera página, reemplazamos los datos
-          setClientesData(resultado.clientes as Cliente[]);
-        } else {
-          // Verificar si los nuevos datos son diferentes de los que ya tenemos
-          const ultimoIDActual = clientesData.length > 0 ? clientesData[clientesData.length - 1].id : 0;
-          const nuevosDatos = resultado.clientes.filter(cliente => cliente.id > ultimoIDActual);
+        // Para otras páginas, simplemente anexamos los nuevos datos
+        // Este enfoque simplificado es más predecible que la lógica compleja anterior
+        setClientesData(prevData => {
+          // Verificar que no haya duplicados
+          const idsExistentes = new Set(prevData.map(c => c.id));
+          const nuevosClientes = resultado.clientes.filter(c => !idsExistentes.has(c.id));
 
-          if (nuevosDatos.length > 0) {
-            // Agregar solo los datos nuevos
-            setClientesData(prevData => [...prevData, ...nuevosDatos]);
-            console.log(`Se agregaron ${nuevosDatos.length} nuevos registros`);
+          if (nuevosClientes.length > 0) {
+            console.log(`Se encontraron ${nuevosClientes.length} nuevos clientes.`);
+            return [...prevData, ...nuevosClientes];
           } else {
-            // Si no hay nuevos datos, intentar con la siguiente página
-            console.warn(`No se encontraron nuevos registros para agregar en la página ${pagina}.`);
-            if (pagina < Math.ceil(resultado.total / itemsPerPage)) {
-              console.log(`Intentando con la página ${pagina + 1}...`);
-              const resultadoSiguiente = await obtenerClientesPaginados(pagina + 1, itemsPerPage);
-              const nuevosDatosSiguiente = resultadoSiguiente.clientes.filter(cliente =>
-                !clientesData.some(c => c.id === cliente.id)
-              );
-
-              if (nuevosDatosSiguiente.length > 0) {
-                setClientesData(prevData => [...prevData, ...nuevosDatosSiguiente]);
-                console.log(`Se agregaron ${nuevosDatosSiguiente.length} nuevos registros de la página ${pagina + 1}`);
-              } else {
-                console.error(`No se pudieron cargar nuevos datos después de intentar con la página ${pagina + 1}.`);
-              }
-            }
+            console.log("No se encontraron nuevos clientes para agregar.");
+            return prevData;
           }
-        }
+        });
       }
 
       setTotalRegistros(resultado.total);
 
       // Actualizar filtros solo en la primera carga
       if (pagina === 1 && resultado.clientes.length > 0) {
-        // Actualizar las agencias disponibles
+        // Código para actualizar agencias y paquetes (sin cambios)
         const agencias = Array.from(new Set(resultado.clientes.map(cliente => cliente.agencia)))
           .filter(agencia => agencia)
           .sort();
         setAgenciasDisponibles(agencias);
 
-        // Actualizar los paquetes disponibles
         const paquetes = Array.from(new Set(resultado.clientes.map(cliente => cliente.paquete || 'null')))
           .filter(paquete => paquete)
           .sort();
@@ -352,14 +295,16 @@ function App() {
       }
 
       console.log(`Página ${pagina} cargada con ${resultado.clientes.length} registros`);
+      return true;
     } catch (error) {
       console.error('Error al cargar los datos paginados:', error);
       setErrorCarga(error instanceof Error ? error.message : 'Error desconocido al cargar datos');
+      return false;
     } finally {
       setCargandoPagina(false);
       setIsLoading(false);
     }
-  }, [clientesData, itemsPerPage]);
+  }, [itemsPerPage]);
 
   // Efecto para cargar datos iniciales
   useEffect(() => {
@@ -388,9 +333,6 @@ function App() {
     return inicial;
   });
 
-  // Lista de paquetes disponibles actualizada - Incluye todos los paquetes de los datos
-  // Estado para los paquetes disponibles
-
 
   useEffect(() => {
     if (clientesData.length > 0) {
@@ -407,10 +349,16 @@ function App() {
       });
       setAgenciasSeleccionadas(agenciasObj);
 
-      // Obtener paquetes únicos del CSV
-      const paquetes = Array.from(new Set(clientesData.map(cliente => cliente.paquete || 'null')))
-        .filter(paquete => paquete)
+      // Obtener paquetes únicos del CSV - Asegurarse de preservar los valores originales como strings
+      const paquetes = Array.from(new Set(clientesData.map(cliente =>
+        cliente.paquete !== undefined ? cliente.paquete : 'null'
+      )))
+        .filter(paquete => paquete !== undefined)
         .sort();
+
+      // Verificamos si hay paquetes duplicados debido a conversión numérica
+      console.log('Paquetes únicos encontrados:', paquetes);
+
       setPaquetesDisponibles(paquetes);
 
       // Inicializar los checkboxes de paquetes
@@ -419,8 +367,6 @@ function App() {
         paquetesObj[paquete] = true;
       });
       setPaquetesSeleccionados(paquetesObj);
-
-      // También puedes descomentar estas partes si quieres obtener modelos y años dinámicamente
     }
   }, [clientesData]);
 
@@ -453,74 +399,163 @@ function App() {
   });
 
   // Añade esta función para manejar el cambio de página
-  const cargarMasDatos = async (): Promise<void> => {
-    // Calcular la siguiente página a cargar
-    const siguientePagina = Math.floor(clientesData.length / itemsPerPage) + 1;
-    console.log(`Cargando datos para la página ${siguientePagina}...`);
 
-    // Guardar longitud actual para verificar si se añadieron nuevos datos
-    const longitudAnterior = clientesData.length;
-
-    try {
-      // Cargar la siguiente página de datos
-      await cargarDatosPaginados(siguientePagina);
-
-      // Verificar si realmente se cargaron nuevos datos
-      if (clientesData.length <= longitudAnterior) {
-        console.warn(`No se cargaron nuevos datos. Longitud anterior: ${longitudAnterior}, longitud actual: ${clientesData.length}`);
-      } else {
-        console.log(`Se cargaron ${clientesData.length - longitudAnterior} nuevos registros`);
-      }
-    } catch (error) {
-      console.error("Error al cargar más datos:", error);
-      throw error; // Re-lanzar el error para manejarlo en handlePageChange
-    }
-  };
 
   // Ajustada para mantener solo currentPage para UI
+  // Función auxiliar para detectar si hay filtros activos
+  const hayFiltrosActivos = (): boolean => {
+    return Object.values(agenciasSeleccionadas).some(v => !v) ||
+      Object.values(modelosSeleccionados).some(v => !v) ||
+      Object.values(añosSeleccionados).some(v => !v) ||
+      Object.values(paquetesSeleccionados).some(v => !v) ||
+      Object.values(apsSeleccionados).some(v => !v) ||
+      searchTerm.trim() !== '' ||
+      filtroNombreFactura.trim() !== '' ||
+      filtroCelular.trim() !== '';
+  };
+
+  // Función handlePageChange mejorada
   const handlePageChange = (newPage: number) => {
-    console.log(`Intentando cambiar a página ${newPage}, página actual: ${currentPage}`);
+    // Evitar procesamiento si ya está cargando
+    if (cargandoPagina) return;
 
-    // Verificar si es una página válida
-    if (newPage < 1) return;
+    console.log(`Cambiando a página ${newPage}`);
 
-    // Calcular cuántas páginas tenemos disponibles actualmente
-    const paginasCargadas = Math.ceil(clientesData.length / itemsPerPage);
+    // Verificar si hay filtros activos
+    const tieneFiltrosaActivos = hayFiltrosActivos();
 
-    // Si intentamos ir a una página que requiere cargar más datos
-    if (newPage > paginasCargadas) {
-      console.log(`Necesitamos cargar más datos para la página ${newPage}, tenemos ${paginasCargadas} páginas cargadas`);
-      setCargandoPagina(true);
+    // Si hay filtros activos, trabajamos con los datos filtrados
+    if (tieneFiltrosaActivos) {
+      const totalPaginas = Math.max(1, Math.ceil(filteredData.length / itemsPerPage));
 
-      // Aquí es donde debes llamar a cargarMasDatos
-      cargarMasDatos()
-        .then(() => {
-          // IMPORTANTE: Solo cambiar la página después de que se hayan cargado los datos
-          console.log(`Datos cargados exitosamente, cambiando a página ${newPage}`);
-          setCurrentPage(newPage);
-          setCargandoPagina(false);
-        })
-        .catch(error => {
-          console.error("Error al cargar más datos:", error);
-          setCargandoPagina(false);
-          // No cambiar la página si hay un error
-        });
+      // Verificar que la página solicitada no exceda el total de páginas disponibles
+      if (newPage > totalPaginas) {
+        console.log(`La página solicitada (${newPage}) excede el total disponible (${totalPaginas})`);
+        // Opcionalmente podrías establecer la página al máximo disponible
+        setCurrentPage(totalPaginas);
+        return;
+      }
+
+      // Si estamos en rango, simplemente cambiamos la página
+      setCurrentPage(newPage);
+      return;
+    }
+
+    // Si no hay filtros activos, trabajamos con los datos paginados
+    if (newPage > currentPage) {
+      const paginasDisponibles = Math.ceil(clientesData.length / itemsPerPage);
+
+      // Si no tenemos suficientes datos cargados
+      if (newPage > paginasDisponibles) {
+        setCargandoPagina(true);
+
+        // Cargar la página siguiente secuencialmente
+        obtenerClientesPaginados(paginasDisponibles + 1, itemsPerPage)
+          .then(resultado => {
+            // Añadir los datos nuevos asegurándonos de que no hay duplicados
+            const idsExistentes = new Set(clientesData.map(c => c.id));
+            const nuevosDatos = resultado.clientes.filter(c => !idsExistentes.has(c.id));
+
+            if (nuevosDatos.length > 0) {
+              setClientesData(prev => [...prev, ...nuevosDatos]);
+              console.log(`Añadidos ${nuevosDatos.length} nuevos registros`);
+
+              // Verificar si ahora tenemos suficientes datos
+              if (paginasDisponibles + 1 >= newPage) {
+                // Si es así, cambiar a la página solicitada
+                setCurrentPage(newPage);
+              } else {
+                // Si no, cargar la siguiente página también
+                console.log(`Necesitamos más datos para llegar a la página ${newPage}`);
+                // Llamar recursivamente para cargar la siguiente página
+                setTimeout(() => {
+                  setCargandoPagina(false);
+                  handlePageChange(newPage);
+                }, 100);
+              }
+            } else {
+              console.warn("No se encontraron nuevos datos");
+              // Cambiar a la última página disponible
+              setCurrentPage(paginasDisponibles);
+            }
+          })
+          .catch(error => {
+            console.error("Error al cargar más datos:", error);
+          })
+          .finally(() => {
+            setCargandoPagina(false);
+          });
+      } else {
+        // Si ya tenemos suficientes datos, simplemente cambiamos la página
+        setCurrentPage(newPage);
+      }
     } else {
-      // Si la página está dentro del rango ya cargado, simplemente cambiar
-      console.log(`Página ${newPage} ya disponible, cambiando directamente`);
+      // Para ir a páginas anteriores, simplemente cambiamos
       setCurrentPage(newPage);
     }
   };
 
-  useEffect(() => {
+  const resetearFiltros = () => {
+    // Resetear filtro de búsqueda por serie
+    setSearchTerm('');
+
+    // Resetear filtro de nombre de factura
+    setFiltroNombreFactura('');
+
+    // Resetear filtro de celular
+    setFiltroCelular('');
+
+    // Resetear rango de días sin visita
+    setMinDiasSinVisita(0);
+    setMaxDiasSinVisita(250);
+
+    // Resetear fechas
+    setFechaInicio(null);
+    setFechaFin(null);
+
+    // Resetear paginación
     setCurrentPage(1);
-  }, [
-    agenciasSeleccionadas,
-    modelosSeleccionados,
-    añosSeleccionados,
-    paquetesSeleccionados,
-    apsSeleccionados
-  ]);
+
+    // Resetear filtros de checkboxes
+    // Agencias
+    const resetAgencias: AgenciasType = {};
+    agenciasDisponibles.forEach(agencia => {
+      resetAgencias[agencia] = true;
+    });
+    setAgenciasSeleccionadas(resetAgencias);
+
+    // Modelos
+    const resetModelos: { [key: string]: boolean } = {};
+    modelosNissan.forEach(modelo => {
+      resetModelos[modelo] = true;
+    });
+    setModelosSeleccionados(resetModelos);
+
+    // Años
+    const resetAños: { [key: string]: boolean } = {};
+    añosModelo.forEach(año => {
+      resetAños[año] = true;
+    });
+    setAñosSeleccionados(resetAños);
+
+    // Paquetes
+    const resetPaquetes: PaquetesType = {};
+    paquetesDisponibles.forEach(paquete => {
+      resetPaquetes[paquete] = true;
+    });
+    setPaquetesSeleccionados(resetPaquetes);
+
+    // APS
+    const resetAPS: APSType = {};
+    asesorAPS.forEach(aps => {
+      resetAPS[aps] = true;
+    });
+    setAPSSeleccionados(resetAPS);
+
+    // Cerrar cualquier filtro que esté abierto
+    cerrarTodosFiltros();
+  };
+
 
   const filteredData = useMemo(() => {
     console.time('Filtrado');
@@ -571,35 +606,36 @@ function App() {
   ]);
 
   // Luego modifica getCurrentItems para usar el dato memoizado
+  // Versión mejorada de getCurrentItems
   const getCurrentItems = (): Cliente[] => {
     // Si estamos cargando, mostrar un indicador
     if (isLoading || cargandoPagina) {
       return [];
     }
 
-    // Si la paginación está funcionando sin filtros
-    if (Object.values(agenciasSeleccionadas).every(v => v) &&
-      Object.values(modelosSeleccionados).every(v => v) &&
-      Object.values(añosSeleccionados).every(v => v) &&
-      Object.values(paquetesSeleccionados).every(v => v) &&
-      Object.values(apsSeleccionados).every(v => v) &&
-      !searchTerm) {
+    // Verificar si hay filtros activos
+    const tieneFiltrosaActivos = hayFiltrosActivos();
+
+    // Si no hay filtros activos - usamos datos paginados normales
+    if (!tieneFiltrosaActivos) {
       // Asegurarse de que los índices sean válidos
       const indexOfLastItem = currentPage * itemsPerPage;
       const indexOfFirstItem = indexOfLastItem - itemsPerPage;
 
       // Verificar si hay suficientes datos para esta página
       if (indexOfFirstItem >= clientesData.length) {
-        console.warn(`Índice fuera de rango: ${indexOfFirstItem} >= ${clientesData.length}. Reseteando a página 1.`);
-        // Si estamos fuera de rango, mostrar la primera página
-        setTimeout(() => setCurrentPage(1), 0);
-        return clientesData.slice(0, itemsPerPage);
+        console.warn(`Índice fuera de rango: ${indexOfFirstItem} >= ${clientesData.length}.`);
+        // Usar la última página disponible en lugar de resetear
+        const ultimaPagina = Math.max(1, Math.ceil(clientesData.length / itemsPerPage));
+        const nuevoInicio = (ultimaPagina - 1) * itemsPerPage;
+        return clientesData.slice(nuevoInicio, nuevoInicio + itemsPerPage);
       }
 
       return clientesData.slice(indexOfFirstItem, indexOfLastItem);
     }
 
-    // Si hay filtros activos
+    // Si hay filtros activos - trabajar con los datos filtrados
+    // Los índices para la página actual
     const indexOfLastItem = currentPage * itemsPerPage;
     const indexOfFirstItem = indexOfLastItem - itemsPerPage;
 
@@ -610,13 +646,15 @@ function App() {
 
     // Verificar que los índices son válidos
     if (indexOfFirstItem >= filteredData.length) {
-      console.warn(`Índice filtrado fuera de rango: ${indexOfFirstItem} >= ${filteredData.length}. Reseteando a página 1.`);
-      // Resetear a la primera página en el siguiente ciclo
-      setTimeout(() => setCurrentPage(1), 0);
-      return filteredData.slice(0, itemsPerPage);
+      console.warn(`Índice filtrado fuera de rango: ${indexOfFirstItem} >= ${filteredData.length}.`);
+      // Usar la última página disponible en lugar de resetear
+      const ultimaPagina = Math.max(1, Math.ceil(filteredData.length / itemsPerPage));
+      const nuevoInicio = (ultimaPagina - 1) * itemsPerPage;
+      return filteredData.slice(nuevoInicio, Math.min(nuevoInicio + itemsPerPage, filteredData.length));
     }
 
-    return filteredData.slice(indexOfFirstItem, indexOfLastItem);
+    // Devolver los elementos para la página actual
+    return filteredData.slice(indexOfFirstItem, Math.min(indexOfLastItem, filteredData.length));
   };
 
   // Función para manejar los cambios en los checkboxes de paquete
@@ -1616,9 +1654,17 @@ function App() {
             <span className="text-sm text-gray-600">Período:</span>
             <div className="text-sm font-medium">14 Mar 2023 - 14 Mar 2024</div>
           </div>
-          <button className="px-4 py-2 bg-red-600 text-white rounded-md text-sm font-medium">
-            Buscar
-          </button>
+          <div className="flex space-x-3"> {/* Añadimos un div para contener ambos botones */}
+            <button
+              onClick={resetearFiltros}
+              className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-md text-sm font-medium transition duration-200"
+            >
+              Resetear Filtros
+            </button>
+            <button className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md text-sm font-medium transition duration-200">
+              Buscar
+            </button>
+          </div>
         </div>
       </div>
       {cargandoPagina && (
@@ -1765,14 +1811,24 @@ function App() {
               <div className="text-sm text-gray-500">
                 {filteredData.length > 0 ? (
                   <>
-                    {(currentPage - 1) * itemsPerPage + 1} - {' '}
-                    {Math.min(currentPage * itemsPerPage, filteredData.length)} / {filteredData.length}
-                    {filteredData.length !== clientesData.length && (
+                    {/* Si tenemos resultados filtrados */}
+                    {Math.min((currentPage - 1) * itemsPerPage + 1, filteredData.length)} - {' '}
+                    {Math.min(currentPage * itemsPerPage, filteredData.length)} de {filteredData.length}
+
+                    {/* Indicar si hay filtros activos */}
+                    {hayFiltrosActivos() && (
                       <span className="ml-1 text-blue-600">
-                        (Filtrado de {clientesData.length} de {totalRegistros} totales)
+                        {/* Si toda la base está cargada */}
+                        {filteredData.length !== totalRegistros ? (
+                          <>(Filtrado de {clientesData.length} de {totalRegistros} totales)</>
+                        ) : (
+                          <>(Filtrado de {totalRegistros} totales)</>
+                        )}
                       </span>
                     )}
-                    {filteredData.length === clientesData.length && totalRegistros > clientesData.length && (
+
+                    {/* Si no hay filtros activos pero no tenemos todos los datos cargados */}
+                    {!hayFiltrosActivos() && clientesData.length < totalRegistros && (
                       <span className="ml-1 text-blue-600">
                         (Cargados {clientesData.length} de {totalRegistros} totales)
                       </span>
@@ -1798,12 +1854,32 @@ function App() {
                 </span>
 
                 <button
-                  className={`px-3 py-1 border border-gray-300 rounded-md text-sm ${cargandoPagina ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-50'
+                  className={`px-3 py-1 border border-gray-300 rounded-md text-sm ${cargandoPagina ||
+                    // Si hay filtros activos, deshabilitar el botón cuando estemos en la última página de datos filtrados
+                    (hayFiltrosActivos() && currentPage >= Math.ceil(filteredData.length / itemsPerPage)) ||
+                    // Si no hay filtros, usar la lógica original
+                    (!hayFiltrosActivos() && currentPage * itemsPerPage >= totalRegistros)
+                    ? 'opacity-50 cursor-not-allowed'
+                    : 'hover:bg-gray-50'
                     }`}
                   onClick={() => handlePageChange(currentPage + 1)}
-                  disabled={cargandoPagina || (currentPage >= Math.ceil(totalRegistros / itemsPerPage))}
+                  disabled={
+                    cargandoPagina ||
+                    // Deshabilitar si hay filtros y estamos en la última página
+                    (hayFiltrosActivos() && currentPage >= Math.ceil(filteredData.length / itemsPerPage)) ||
+                    // Si no hay filtros, usar la lógica original
+                    (!hayFiltrosActivos() && currentPage * itemsPerPage >= totalRegistros)
+                  }
                 >
-                  {cargandoPagina ? 'Cargando...' : 'Siguiente'}
+                  {cargandoPagina ? (
+                    <span className="flex items-center">
+                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Cargando...
+                    </span>
+                  ) : 'Siguiente'}
                 </button>
 
                 <button

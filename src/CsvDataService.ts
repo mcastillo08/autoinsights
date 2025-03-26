@@ -208,7 +208,8 @@ const mapearClienteCSVaCliente = (clienteCSV: ClienteCSV, index: number): Client
     telefono: clienteCSV.TELEFONO ? String(clienteCSV.TELEFONO) : undefined,
     tOficina: clienteCSV.OFICINA ? String(clienteCSV.OFICINA) : undefined,
     cloudtalk: undefined, // No está en el CSV, se calculará después
-    paquete: clienteCSV.PAQUETE ? String(clienteCSV.PAQUETE) : undefined,
+    // Importante: Preservar el valor original de PAQUETE como string
+    paquete: clienteCSV.PAQUETE !== undefined ? String(clienteCSV.PAQUETE) : undefined,
     orden: clienteCSV.ORDEN,
     total: clienteCSV.TOTAL,
     aps: clienteCSV.NOMBRE_ASESOR || '', // Usar NOMBRE_ASESOR para APS
@@ -284,7 +285,12 @@ const cargarDatosCSVCompleto = async (intentos = 3): Promise<void> => {
     const resultado = await new Promise<Papa.ParseResult<ClienteCSV>>((resolve, reject) => {
       Papa.parse<ClienteCSV>(csvTextCache!, {
         header: true,
-        dynamicTyping: true,
+        // IMPORTANTE: Desactivar dynamicTyping para mantener los valores originales de los strings
+        // como '001' y '1' en lugar de convertirlos a números
+        dynamicTyping: function(field) {
+          // Mantener PAQUETE como string (no convertir a número)
+          return field !== 'PAQUETE';
+        },
         skipEmptyLines: true,
         delimiter: '', // Auto-detectar delimitador
         transformHeader: (header) => header.trim(), // Eliminar espacios en los encabezados
