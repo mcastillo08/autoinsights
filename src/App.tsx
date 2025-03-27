@@ -5,8 +5,6 @@ import { obtenerClientesPaginados, Cliente, limpiarCacheCSV } from './CsvDataSer
 import FiltroPorSerieAvanzado from './components/FiltroPorSerieAvanzado';
 import { obtenerHistorialBusquedas, guardarEnHistorial } from './service/HistorialBusquedas';
 import { debounce } from 'lodash';
-import { extraerAgenciasYPaquetesCompletos } from './extractor-agencias-paquetes';
-
 
 
 type AgenciasType = {
@@ -263,9 +261,6 @@ function App() {
   const [minDiasSinVisita, setMinDiasSinVisita] = useState<number>(0);
   // @ts-ignore
   const [maxDiasSinVisita, setMaxDiasSinVisita] = useState<number>(250);
-  const [filtradoFlexible, setFiltradoFlexible] = useState<boolean>(false);
-
-
 
   // Agregar estos estados junto a los demás estados al inicio de la función App()
   const [filtroNombreFactura, setFiltroNombreFactura] = useState<string>('');
@@ -283,7 +278,7 @@ function App() {
   const [mostrarSelectorMesFin, setMostrarSelectorMesFin] = useState<boolean>(false);
   const [selectorAñoInicio, setSelectorAñoInicio] = useState<number>(new Date().getFullYear());
   const [selectorAñoFin, setSelectorAñoFin] = useState<number>(new Date().getFullYear());
-  const [cargandoFiltrosCompletos, setCargandoFiltrosCompletos] = useState<boolean>(false);
+
 
 
   // Función para cargar datos paginados
@@ -343,75 +338,13 @@ function App() {
   }, [itemsPerPage]);
 
   // Efecto para cargar datos iniciales
-  // Modifica este useEffect para que no se ejecute cuando estamos cargando los metadatos
   useEffect(() => {
-    // Solo cargar datos paginados si no hay datos y no estamos ni hemos cargado los metadatos completos
-    if (!clientesData.length && !cargandoFiltrosCompletos && agenciasDisponibles.length <= 8) {
-      console.log("Cargando datos paginados iniciales - este efecto no debería ejecutarse si ya cargamos los datos completos");
+    if (!clientesData.length) {
       setIsLoading(true);
       setErrorCarga(null);
       cargarDatosPaginados(1);
     }
-  }, [cargarDatosPaginados, clientesData.length, cargandoFiltrosCompletos, agenciasDisponibles.length]);
-
-  // NUEVO EFECTO: Cargar todas las agencias y paquetes al inicio
-  // En el useEffect que llama a extraerAgenciasYPaquetesCompletos
-  // NUEVO EFECTO: Cargar todas las agencias y paquetes al inicio
-  useEffect(() => {
-    const cargarMetadatosCompletos = async () => {
-      try {
-        console.log("⭐ INICIANDO CARGA DE METADATOS COMPLETOS");
-        setIsLoading(true);
-        setCargandoFiltrosCompletos(true);
-        setErrorCarga(null);
-
-        console.log('Cargando agencias y paquetes completos...');
-
-        // Extraer todas las agencias y paquetes del CSV completo
-        const resultado = await extraerAgenciasYPaquetesCompletos();
-
-        console.log(`🔍 RESULTADO OBTENIDO:`, resultado);
-        console.log(`Se encontraron ${resultado.agencias.length} agencias y ${resultado.paquetes.length} paquetes en total.`);
-
-        // IMPORTANTE: Asegúrate de que estas líneas reemplacen completamente los estados anteriores
-        setAgenciasDisponibles([...resultado.agencias]);
-        setPaquetesDisponibles([...resultado.paquetes]);
-        setTotalRegistros(resultado.totalRegistros);
-
-        console.log("✅ ESTADOS ACTUALIZADOS CON DATOS COMPLETOS");
-
-        // Inicializar los checkboxes de agencias
-        const agenciasObj: AgenciasType = {};
-        resultado.agencias.forEach(agencia => {
-          agenciasObj[agencia] = true;
-        });
-        setAgenciasSeleccionadas(agenciasObj);
-
-        // Inicializar los checkboxes de paquetes
-        const paquetesObj: PaquetesType = {};
-        resultado.paquetes.forEach(paquete => {
-          paquetesObj[paquete] = true;
-        });
-        setPaquetesSeleccionados(paquetesObj);
-
-        console.log("✅ CHECKBOXES INICIALIZADOS");
-
-        // Cargar primera página de datos para visualización
-        await cargarDatosPaginados(1);
-      } catch (error) {
-        console.error('❌ ERROR al cargar metadatos completos:', error);
-        setErrorCarga(error instanceof Error ? error.message : 'Error desconocido al cargar datos completos');
-      } finally {
-        console.log("⭐ FINALIZANDO CARGA DE METADATOS COMPLETOS");
-        setCargandoFiltrosCompletos(false);
-        setIsLoading(false);
-      }
-    };
-
-    cargarMetadatosCompletos();
-  }, []);  // IMPORTANTE: Quitar cargarDatosPaginados de las dependencias
-
-
+  }, [cargarDatosPaginados, clientesData.length]);
 
   useEffect(() => {
     setHistorialBusquedas(obtenerHistorialBusquedas());
@@ -466,48 +399,40 @@ function App() {
 
 
   useEffect(() => {
-    // Solo actualizar si los datos están cargados pero no tenemos filtros completos
-    if (clientesData.length > 0 && agenciasDisponibles.length < 9) {
-      console.log("Actualizando filtros basado en datos parciales - esto no debería ejecutarse después de cargar los datos completos");
-
+    if (clientesData.length > 0) {
       // Obtener agencias únicas del CSV
       const agencias = Array.from(new Set(clientesData.map(cliente => cliente.agencia)))
         .filter(agencia => agencia)
         .sort();
+      setAgenciasDisponibles(agencias);
 
-      // Solo actualizar si tenemos menos agencias que las que deberíamos tener en total
-      if (agencias.length <= 8) {
-        setAgenciasDisponibles(agencias);
+      // Inicializar los checkboxes de agencias
+      const agenciasObj: AgenciasType = {};
+      agencias.forEach(agencia => {
+        agenciasObj[agencia] = true;
+      });
+      setAgenciasSeleccionadas(agenciasObj);
 
-        // Inicializar los checkboxes de agencias
-        const agenciasObj: AgenciasType = {};
-        agencias.forEach(agencia => {
-          agenciasObj[agencia] = true;
-        });
-        setAgenciasSeleccionadas(agenciasObj);
-      }
-
-      // Obtener paquetes únicos del CSV
+      // Obtener paquetes únicos del CSV - Asegurarse de preservar los valores originales como strings
       const paquetes = Array.from(new Set(clientesData.map(cliente =>
         cliente.paquete !== undefined ? cliente.paquete : 'null'
       )))
         .filter(paquete => paquete !== undefined)
         .sort();
 
-      // Solo actualizar si tenemos menos paquetes que los que deberíamos tener
-      if (paquetes.length < 15) {
-        console.log('Paquetes parciales encontrados:', paquetes.length);
-        setPaquetesDisponibles(paquetes);
+      // Verificamos si hay paquetes duplicados debido a conversión numérica
+      console.log('Paquetes únicos encontrados:', paquetes);
 
-        // Inicializar los checkboxes de paquetes
-        const paquetesObj: PaquetesType = {};
-        paquetes.forEach(paquete => {
-          paquetesObj[paquete] = true;
-        });
-        setPaquetesSeleccionados(paquetesObj);
-      }
+      setPaquetesDisponibles(paquetes);
+
+      // Inicializar los checkboxes de paquetes
+      const paquetesObj: PaquetesType = {};
+      paquetes.forEach(paquete => {
+        paquetesObj[paquete] = true;
+      });
+      setPaquetesSeleccionados(paquetesObj);
     }
-  }, [clientesData, agenciasDisponibles.length]);
+  }, [clientesData]);
 
 
   // Inicializar el estado de los paquetes seleccionados
@@ -1385,14 +1310,8 @@ function App() {
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
           <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-red-600 mx-auto mb-4"></div>
-          <h2 className="text-xl font-semibold text-gray-700">
-            {cargandoFiltrosCompletos ? 'Cargando agencias y paquetes completos...' : 'Cargando datos...'}
-          </h2>
-          <p className="text-gray-500">
-            {cargandoFiltrosCompletos
-              ? 'Por favor espere mientras se procesan todos los registros para obtener la lista completa de agencias y paquetes.'
-              : 'Por favor espere mientras se cargan los datos del sistema.'}
-          </p>
+          <h2 className="text-xl font-semibold text-gray-700">Cargando datos...</h2>
+          <p className="text-gray-500">Por favor espere mientras se cargan los datos del sistema.</p>
         </div>
       </div>
     );
@@ -1479,9 +1398,11 @@ function App() {
             >
               <span className={mostrarFiltroAgencia ? "font-medium" : ""}>
                 Agencia{' '}
-                <span className="text-xs ml-1">
-                  ({Object.values(agenciasSeleccionadas).filter(v => v).length}/{agenciasDisponibles.length})
-                </span>
+                {Object.values(agenciasSeleccionadas).filter(v => v).length > 0 && (
+                  <span className="text-xs ml-1">
+                    ({Object.values(agenciasSeleccionadas).filter(v => v).length})
+                  </span>
+                )}
               </span>
               <ChevronDown className="w-4 h-4 text-gray-400" />
             </button>
@@ -1642,9 +1563,11 @@ function App() {
             >
               <span className={mostrarFiltroPaquete ? "font-medium" : ""}>
                 Paquete{' '}
-                <span className="text-xs ml-1">
-                  ({Object.values(paquetesSeleccionados).filter(v => v).length}/{paquetesDisponibles.length})
-                </span>
+                {Object.values(paquetesSeleccionados).filter(v => v).length > 0 && (
+                  <span className="text-xs ml-1">
+                    ({Object.values(paquetesSeleccionados).filter(v => v).length})
+                  </span>
+                )}
               </span>
               <ChevronDown className="w-4 h-4 text-gray-400" />
             </button>

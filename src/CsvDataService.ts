@@ -117,42 +117,6 @@ export const obtenerClientesPaginados = async (
   }
 };
 
-// NUEVA FUNCIÓN: Obtener todos los valores únicos para filtros
-export const obtenerValoresUnicosParaFiltros = async (): Promise<{ agencias: string[], paquetes: string[] }> => {
-  try {
-    // Si el caché está vacío, cargar el CSV completo
-    if (!clientesDataCache) {
-      console.log('No hay caché, cargando datos CSV para filtros...');
-      await cargarDatosCSVCompleto();
-    }
-
-    if (!clientesDataCache) {
-      throw new Error('No se pudieron cargar los datos para obtener filtros');
-    }
-
-    // Extraer todas las agencias únicas
-    const agencias = Array.from(new Set(
-      clientesDataCache.map(cliente => cliente.agencia)
-    ))
-      .filter(agencia => agencia)
-      .sort();
-
-    // Extraer todos los paquetes únicos
-    const paquetes = Array.from(new Set(
-      clientesDataCache.map(cliente => 
-        cliente.paquete !== undefined ? String(cliente.paquete) : 'null'
-      )
-    ))
-      .filter(paquete => paquete)
-      .sort();
-
-    console.log(`Valores únicos cargados: ${agencias.length} agencias, ${paquetes.length} paquetes`);
-    return { agencias, paquetes };
-  } catch (error) {
-    console.error('Error al obtener valores únicos para filtros:', error);
-    return { agencias: [], paquetes: [] };
-  }
-};
 
 // Función para mapear de CSV a Cliente (con mejor manejo de tipos)
 const mapearClienteCSVaCliente = (clienteCSV: ClienteCSV, index: number): Cliente => {
