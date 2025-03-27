@@ -2,24 +2,23 @@ import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { Search, ChevronDown, Calendar } from 'lucide-react';
 import DiasSinVisitaRangeSlider from './DiasSinVisitaRangeSlider';
 import { obtenerClientesPaginados, Cliente, limpiarCacheCSV } from './CsvDataService';
+import FiltroPorSerieAvanzado from './components/FiltroPorSerieAvanzado';
+import { obtenerHistorialBusquedas, guardarEnHistorial } from './service/HistorialBusquedas';
+import { debounce } from 'lodash';
 
-// Definimos las interfaces para TypeScript
-// Definimos el tipo para las agencias
+
 type AgenciasType = {
   [key: string]: boolean;
 };
 
-// Definimos el tipo para los paquetes
 type PaquetesType = {
   [key: string]: boolean;
 };
 
-// Definimos el tipo para los asesores APS
 type APSType = {
   [key: string]: boolean;
 };
 
-// Lista de modelos según las imágenes proporcionadas
 const modelosNissan = [
   'VERSA',
   'NP300',
@@ -171,24 +170,54 @@ const asesorAPS = [
   'YEZENIA RIVAS AMAYA'
 ];
 
+
+const formatearNumeroTelefonoParaMostrar = (numero?: string): string => {
+  if (!numero || numero.trim() === '') {
+    return '-';
+  }
+
+  // Si el número está en notación científica, convertirlo a formato normal
+  if (numero.includes('E') || numero.includes('e')) {
+    try {
+      // Convertir de notación científica a número normal sin decimales
+      const num = Number(numero);
+      if (isNaN(num)) {
+        return numero; // Si no se puede convertir, devolver el original
+      }
+      return num.toFixed(0); // Convertir a string sin decimales
+    } catch (e) {
+      console.error('Error al convertir número de notación científica:', e);
+      return numero; // Devolver el original si hay error
+    }
+  }
+
+  return numero;
+};
+
 // Función para verificar si un campo está vacío o solo contiene espacios
 const isEmpty = (value?: string): boolean => {
   return !value || value.trim() === '';
 };
-
+// Función  para determinar el número de Cloudtalk
 const determinaCloudTalk = (cliente: Cliente): string => {
   // Verificar celular primero
   if (!isEmpty(cliente.celular)) {
-    return `+${cliente.celular}`;
+    const celularFormateado = formatearNumeroTelefonoParaMostrar(cliente.celular);
+    return celularFormateado !== '-' ? `+${celularFormateado}` : '-';
   }
+
   // Si no hay celular, verificar teléfono
   if (!isEmpty(cliente.telefono)) {
-    return `+${cliente.telefono}`;
+    const telefonoFormateado = formatearNumeroTelefonoParaMostrar(cliente.telefono);
+    return telefonoFormateado !== '-' ? `+${telefonoFormateado}` : '-';
   }
+
   // Si no hay teléfono, verificar T. oficina
   if (!isEmpty(cliente.tOficina)) {
-    return `+${cliente.tOficina}`;
+    const oficinaFormateado = formatearNumeroTelefonoParaMostrar(cliente.tOficina);
+    return oficinaFormateado !== '-' ? `+${oficinaFormateado}` : '-';
   }
+
   // Si no hay ninguno, mostrar guión
   return '-';
 };
@@ -220,6 +249,8 @@ function App() {
   const [agenciasDisponibles, setAgenciasDisponibles] = useState<string[]>([
     'AGUA PRIETA', 'CABORCA', 'GRANAUTO', 'GUAYMAS', 'MAGDALENA', 'NISSAUTO', 'NOGALES', 'MORELOS'
   ]);
+  const [historialBusquedas, setHistorialBusquedas] = useState<string[]>([]);
+
   // estados de boton siguiente y anterior
   const [currentPage, setCurrentPage] = useState<number>(1);
   const itemsPerPage = 500;
@@ -314,6 +345,39 @@ function App() {
       cargarDatosPaginados(1);
     }
   }, [cargarDatosPaginados, clientesData.length]);
+
+  useEffect(() => {
+    setHistorialBusquedas(obtenerHistorialBusquedas());
+  }, []);
+
+  const addToSearchHistory = (term: string) => {
+    const nuevoHistorial = guardarEnHistorial(term);
+    setHistorialBusquedas(nuevoHistorial);
+  };
+
+  const debouncedSetSearchTerm = useMemo(
+    () => debounce((value: string) => {
+      setSearchTerm(value);
+    }, 300), // 300ms de retraso
+    []
+  );
+
+  useEffect(() => {
+    return () => {
+      debouncedSetSearchTerm.cancel();
+    };
+  }, [debouncedSetSearchTerm]);
+
+  // Función para realizar búsqueda inmediata (sin debounce)
+  const handleSearch = () => {
+    if (searchTerm.trim()) {
+      addToSearchHistory(searchTerm.trim());
+    }
+    if (filtroCelular.trim()) {
+      // Si necesitas alguna lógica adicional al realizar la búsqueda, añádela aquí
+    }
+    // Si necesitas alguna lógica adicional al realizar la búsqueda, añádela aquí
+  };
 
   // Inicializar el estado de los asesores APS seleccionados
   const [apsSeleccionados, setAPSSeleccionados] = useState<APSType>(() => {
@@ -557,12 +621,35 @@ function App() {
   };
 
 
+  // Este código debe reemplazar la sección actual de filtrado por Celular
+  // que se encuentra dentro de la función filteredData en el archivo App.tsx
+  // Aproximadamente en la línea ~475-490 del código
+
   const filteredData = useMemo(() => {
     console.time('Filtrado');
+
+    // Lógica para buscar por múltiples series
+    const seriesABuscar = searchTerm
+      .split(',')
+      .map(term => term.trim().toLowerCase())
+      .filter(term => term.length > 0);
+
     const result = clientesData.filter(cliente => {
-      // Filtros rápidos primero (los que fallan más frecuentemente)
-      if (searchTerm && !cliente.serie.toLowerCase().includes(searchTerm.toLowerCase())) {
-        return false;
+      // Si hay términos de búsqueda de serie
+      if (seriesABuscar.length > 0) {
+        // En modo múltiple (separado por comas), cualquier coincidencia es válida
+        if (seriesABuscar.length > 1) {
+          const serieLower = cliente.serie.toLowerCase();
+          const coincideConAlguno = seriesABuscar.some(term =>
+            serieLower.includes(term)
+          );
+
+          if (!coincideConAlguno) return false;
+        }
+        // En modo simple, debe coincidir con el término único
+        else if (!cliente.serie.toLowerCase().includes(seriesABuscar[0])) {
+          return false;
+        }
       }
 
       // Filtro por agencia
@@ -590,9 +677,29 @@ function App() {
         return false;
       }
 
+      // Filtro por Nombre Factura
+      if (filtroNombreFactura.trim() !== '' && !cliente.nombreFactura.toLowerCase().includes(filtroNombreFactura.trim().toLowerCase())) {
+        return false;
+      }
+
+      // AQUÍ ES DONDE DEBES REEMPLAZAR EL CÓDIGO EXISTENTE DE FILTRO POR CELULAR
+      // Filtro por Celular
+      if (filtroCelular.trim() !== '') {
+        // Verificar todos los campos de contacto
+        const celularMatch = cliente.celular?.includes(filtroCelular.trim()) || false;
+        const telefonoMatch = cliente.telefono?.includes(filtroCelular.trim()) || false;
+        const oficinaMatch = cliente.tOficina?.includes(filtroCelular.trim()) || false;
+        const cloudtalkMatch = determinaCloudTalk(cliente)?.includes(filtroCelular.trim()) || false;
+
+        if (!celularMatch && !telefonoMatch && !oficinaMatch && !cloudtalkMatch) {
+          return false;
+        }
+      }
+
       // Si pasa todos los filtros, incluir el cliente
       return true;
     });
+
     console.timeEnd('Filtrado');
     return result;
   }, [
@@ -602,7 +709,9 @@ function App() {
     modelosSeleccionados,
     añosSeleccionados,
     paquetesSeleccionados,
-    apsSeleccionados
+    apsSeleccionados,
+    filtroNombreFactura,
+    filtroCelular  // Asegúrate de que filtroCelular esté incluido en las dependencias
   ]);
 
   // Luego modifica getCurrentItems para usar el dato memoizado
@@ -689,10 +798,6 @@ function App() {
       nuevosPaquetes[key] = key === paquete;
     });
     setPaquetesSeleccionados(nuevosPaquetes);
-  };
-
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchTerm(e.target.value);
   };
 
   // Función para manejar los cambios en los checkboxes de agencia
@@ -1124,17 +1229,23 @@ function App() {
 
           <div className="flex items-center space-x-4">
             <div className="flex items-center space-x-2">
-              <span className="text-sm text-gray-600">Serie</span>
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder="Introduce un valor"
-                  className="border border-gray-300 rounded-md pl-8 pr-3 py-1 text-sm"
-                  value={searchTerm}
-                  onChange={handleSearchChange}
-                />
-                <Search className="absolute left-2 top-1.5 w-4 h-4 text-gray-400" />
-              </div>
+              <span className={`text-sm ${searchTerm ? 'text-red-600 font-medium' : 'text-gray-600'}`}>
+                Serie
+                {searchTerm && (
+                  <span className="ml-1 bg-red-100 text-red-800 text-xs px-1 rounded">
+                    Filtrado
+                  </span>
+                )}
+              </span>
+              <FiltroPorSerieAvanzado
+                value={searchTerm}
+                onChange={debouncedSetSearchTerm}
+                onSearch={handleSearch}
+                placeholder="Buscar por serie"
+                className="w-60"
+                historialBusquedas={historialBusquedas}
+                onAddToHistory={addToSearchHistory}
+              />
             </div>
             <DiasSinVisitaRangeSlider
               onRangeChange={handleDiasSinVisitaRangeChange}
@@ -1640,7 +1751,7 @@ function App() {
           <div className="relative">
             <input
               type="text"
-              placeholder="Celular"
+              placeholder="Celular/Teléfono/Oficina"
               className="w-full border border-gray-300 rounded-md pl-8 pr-3 py-2 text-sm"
               value={filtroCelular}
               onChange={handleCelularChange}
@@ -1767,7 +1878,7 @@ function App() {
                           {item.agencia}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {item.celular}
+                          {!isEmpty(item.celular) ? item.celular : '-'}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                           {!isEmpty(item.telefono) ? item.telefono : '-'}

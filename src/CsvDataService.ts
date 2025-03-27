@@ -47,6 +47,8 @@ let clientesDataCache: Cliente[] | null = null;
 let totalRegistros = 0;
 let paginasServidas: Record<number, boolean> = {}; // Registro de páginas ya servidas
 
+
+
 // Nueva función mejorada para obtener una porción de los datos
 export const obtenerClientesPaginados = async (
   pagina: number,
@@ -200,21 +202,21 @@ const mapearClienteCSVaCliente = (clienteCSV: ClienteCSV, index: number): Client
     id: index + 1, // Asignar un ID secuencial
     serie: clienteCSV.SERIE || '',
     modelo: clienteCSV.Modelo || '',
-    año: clienteCSV.ANIO_VIN || 0,
+    año: clienteCSV.ANIO_VIN ? Number(clienteCSV.ANIO_VIN) : 0,
     nombreFactura: clienteCSV.NOMBRE_FAC || '',
     contacto: clienteCSV.CONTACTO || '',
     agencia: clienteCSV.AGENCI || '',
-    celular: clienteCSV.CELULAR ? String(clienteCSV.CELULAR) : '',
-    telefono: clienteCSV.TELEFONO ? String(clienteCSV.TELEFONO) : undefined,
-    tOficina: clienteCSV.OFICINA ? String(clienteCSV.OFICINA) : undefined,
+    celular: clienteCSV.CELULAR || '',
+    telefono: clienteCSV.TELEFONO || undefined,
+    tOficina: clienteCSV.OFICINA || undefined,
     cloudtalk: undefined, // No está en el CSV, se calculará después
     // Importante: Preservar el valor original de PAQUETE como string
     paquete: clienteCSV.PAQUETE !== undefined ? String(clienteCSV.PAQUETE) : undefined,
-    orden: clienteCSV.ORDEN,
-    total: clienteCSV.TOTAL,
+    orden: clienteCSV.ORDEN ? Number(clienteCSV.ORDEN) : undefined,
+    total: clienteCSV.TOTAL ? Number(clienteCSV.TOTAL) : undefined,
     aps: clienteCSV.NOMBRE_ASESOR || '', // Usar NOMBRE_ASESOR para APS
     ultimaVisita: ultimaVisita,
-    diasSinVenir: clienteCSV.DIAS_NOSHOW || 0
+    diasSinVenir: clienteCSV.DIAS_NOSHOW ? Number(clienteCSV.DIAS_NOSHOW) : 0
   };
 };
 
@@ -285,12 +287,8 @@ const cargarDatosCSVCompleto = async (intentos = 3): Promise<void> => {
     const resultado = await new Promise<Papa.ParseResult<ClienteCSV>>((resolve, reject) => {
       Papa.parse<ClienteCSV>(csvTextCache!, {
         header: true,
-        // IMPORTANTE: Desactivar dynamicTyping para mantener los valores originales de los strings
-        // como '001' y '1' en lugar de convertirlos a números
-        dynamicTyping: function(field) {
-          // Mantener PAQUETE como string (no convertir a número)
-          return field !== 'PAQUETE';
-        },
+        // IMPORTANTE: Desactivar completamente dynamicTyping para mantener strings originales
+        dynamicTyping: false,
         skipEmptyLines: true,
         delimiter: '', // Auto-detectar delimitador
         transformHeader: (header) => header.trim(), // Eliminar espacios en los encabezados
@@ -311,6 +309,12 @@ const cargarDatosCSVCompleto = async (intentos = 3): Promise<void> => {
     // Verificar si hay datos
     if (resultado.data.length === 0) {
       throw new Error('El CSV no contiene datos');
+    }
+
+    // Imprimir algunos registros de muestra para verificar
+    console.log('Muestra de 3 registros del CSV:');
+    for (let i = 0; i < Math.min(3, resultado.data.length); i++) {
+      console.log(`Registro ${i + 1}:`, resultado.data[i]);
     }
 
     totalRegistros = resultado.data.length;
