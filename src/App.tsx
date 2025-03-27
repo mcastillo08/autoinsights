@@ -5,6 +5,8 @@ import { obtenerClientesPaginados, Cliente, limpiarCacheCSV } from './CsvDataSer
 import FiltroPorSerieAvanzado from './components/FiltroPorSerieAvanzado';
 import { obtenerHistorialBusquedas, guardarEnHistorial } from './service/HistorialBusquedas';
 import { debounce } from 'lodash';
+import { extraerAgenciasYPaquetesCompletos } from './extractor-agencias-paquetes';
+
 
 
 type AgenciasType = {
@@ -261,6 +263,9 @@ function App() {
   const [minDiasSinVisita, setMinDiasSinVisita] = useState<number>(0);
   // @ts-ignore
   const [maxDiasSinVisita, setMaxDiasSinVisita] = useState<number>(250);
+  const [filtradoFlexible, setFiltradoFlexible] = useState<boolean>(false);
+
+
 
   // Agregar estos estados junto a los demás estados al inicio de la función App()
   const [filtroNombreFactura, setFiltroNombreFactura] = useState<string>('');
@@ -278,7 +283,7 @@ function App() {
   const [mostrarSelectorMesFin, setMostrarSelectorMesFin] = useState<boolean>(false);
   const [selectorAñoInicio, setSelectorAñoInicio] = useState<number>(new Date().getFullYear());
   const [selectorAñoFin, setSelectorAñoFin] = useState<number>(new Date().getFullYear());
-
+  const [cargandoFiltrosCompletos, setCargandoFiltrosCompletos] = useState<boolean>(false);
 
 
   // Función para cargar datos paginados
@@ -338,13 +343,75 @@ function App() {
   }, [itemsPerPage]);
 
   // Efecto para cargar datos iniciales
+  // Modifica este useEffect para que no se ejecute cuando estamos cargando los metadatos
   useEffect(() => {
-    if (!clientesData.length) {
+    // Solo cargar datos paginados si no hay datos y no estamos ni hemos cargado los metadatos completos
+    if (!clientesData.length && !cargandoFiltrosCompletos && agenciasDisponibles.length <= 8) {
+      console.log("Cargando datos paginados iniciales - este efecto no debería ejecutarse si ya cargamos los datos completos");
       setIsLoading(true);
       setErrorCarga(null);
       cargarDatosPaginados(1);
     }
-  }, [cargarDatosPaginados, clientesData.length]);
+  }, [cargarDatosPaginados, clientesData.length, cargandoFiltrosCompletos, agenciasDisponibles.length]);
+
+  // NUEVO EFECTO: Cargar todas las agencias y paquetes al inicio
+  // En el useEffect que llama a extraerAgenciasYPaquetesCompletos
+  // NUEVO EFECTO: Cargar todas las agencias y paquetes al inicio
+  useEffect(() => {
+    const cargarMetadatosCompletos = async () => {
+      try {
+        console.log("⭐ INICIANDO CARGA DE METADATOS COMPLETOS");
+        setIsLoading(true);
+        setCargandoFiltrosCompletos(true);
+        setErrorCarga(null);
+
+        console.log('Cargando agencias y paquetes completos...');
+
+        // Extraer todas las agencias y paquetes del CSV completo
+        const resultado = await extraerAgenciasYPaquetesCompletos();
+
+        console.log(`🔍 RESULTADO OBTENIDO:`, resultado);
+        console.log(`Se encontraron ${resultado.agencias.length} agencias y ${resultado.paquetes.length} paquetes en total.`);
+
+        // IMPORTANTE: Asegúrate de que estas líneas reemplacen completamente los estados anteriores
+        setAgenciasDisponibles([...resultado.agencias]);
+        setPaquetesDisponibles([...resultado.paquetes]);
+        setTotalRegistros(resultado.totalRegistros);
+
+        console.log("✅ ESTADOS ACTUALIZADOS CON DATOS COMPLETOS");
+
+        // Inicializar los checkboxes de agencias
+        const agenciasObj: AgenciasType = {};
+        resultado.agencias.forEach(agencia => {
+          agenciasObj[agencia] = true;
+        });
+        setAgenciasSeleccionadas(agenciasObj);
+
+        // Inicializar los checkboxes de paquetes
+        const paquetesObj: PaquetesType = {};
+        resultado.paquetes.forEach(paquete => {
+          paquetesObj[paquete] = true;
+        });
+        setPaquetesSeleccionados(paquetesObj);
+
+        console.log("✅ CHECKBOXES INICIALIZADOS");
+
+        // Cargar primera página de datos para visualización
+        await cargarDatosPaginados(1);
+      } catch (error) {
+        console.error('❌ ERROR al cargar metadatos completos:', error);
+        setErrorCarga(error instanceof Error ? error.message : 'Error desconocido al cargar datos completos');
+      } finally {
+        console.log("⭐ FINALIZANDO CARGA DE METADATOS COMPLETOS");
+        setCargandoFiltrosCompletos(false);
+        setIsLoading(false);
+      }
+    };
+
+    cargarMetadatosCompletos();
+  }, []);  // IMPORTANTE: Quitar cargarDatosPaginados de las dependencias
+
+
 
   useEffect(() => {
     setHistorialBusquedas(obtenerHistorialBusquedas());
@@ -399,40 +466,48 @@ function App() {
 
 
   useEffect(() => {
-    if (clientesData.length > 0) {
+    // Solo actualizar si los datos están cargados pero no tenemos filtros completos
+    if (clientesData.length > 0 && agenciasDisponibles.length < 9) {
+      console.log("Actualizando filtros basado en datos parciales - esto no debería ejecutarse después de cargar los datos completos");
+
       // Obtener agencias únicas del CSV
       const agencias = Array.from(new Set(clientesData.map(cliente => cliente.agencia)))
         .filter(agencia => agencia)
         .sort();
-      setAgenciasDisponibles(agencias);
 
-      // Inicializar los checkboxes de agencias
-      const agenciasObj: AgenciasType = {};
-      agencias.forEach(agencia => {
-        agenciasObj[agencia] = true;
-      });
-      setAgenciasSeleccionadas(agenciasObj);
+      // Solo actualizar si tenemos menos agencias que las que deberíamos tener en total
+      if (agencias.length <= 8) {
+        setAgenciasDisponibles(agencias);
 
-      // Obtener paquetes únicos del CSV - Asegurarse de preservar los valores originales como strings
+        // Inicializar los checkboxes de agencias
+        const agenciasObj: AgenciasType = {};
+        agencias.forEach(agencia => {
+          agenciasObj[agencia] = true;
+        });
+        setAgenciasSeleccionadas(agenciasObj);
+      }
+
+      // Obtener paquetes únicos del CSV
       const paquetes = Array.from(new Set(clientesData.map(cliente =>
         cliente.paquete !== undefined ? cliente.paquete : 'null'
       )))
         .filter(paquete => paquete !== undefined)
         .sort();
 
-      // Verificamos si hay paquetes duplicados debido a conversión numérica
-      console.log('Paquetes únicos encontrados:', paquetes);
+      // Solo actualizar si tenemos menos paquetes que los que deberíamos tener
+      if (paquetes.length < 15) {
+        console.log('Paquetes parciales encontrados:', paquetes.length);
+        setPaquetesDisponibles(paquetes);
 
-      setPaquetesDisponibles(paquetes);
-
-      // Inicializar los checkboxes de paquetes
-      const paquetesObj: PaquetesType = {};
-      paquetes.forEach(paquete => {
-        paquetesObj[paquete] = true;
-      });
-      setPaquetesSeleccionados(paquetesObj);
+        // Inicializar los checkboxes de paquetes
+        const paquetesObj: PaquetesType = {};
+        paquetes.forEach(paquete => {
+          paquetesObj[paquete] = true;
+        });
+        setPaquetesSeleccionados(paquetesObj);
+      }
     }
-  }, [clientesData]);
+  }, [clientesData, agenciasDisponibles.length]);
 
 
   // Inicializar el estado de los paquetes seleccionados
@@ -462,11 +537,6 @@ function App() {
     return inicial;
   });
 
-  // Añade esta función para manejar el cambio de página
-
-
-  // Ajustada para mantener solo currentPage para UI
-  // Función auxiliar para detectar si hay filtros activos
   const hayFiltrosActivos = (): boolean => {
     return Object.values(agenciasSeleccionadas).some(v => !v) ||
       Object.values(modelosSeleccionados).some(v => !v) ||
@@ -475,7 +545,9 @@ function App() {
       Object.values(apsSeleccionados).some(v => !v) ||
       searchTerm.trim() !== '' ||
       filtroNombreFactura.trim() !== '' ||
-      filtroCelular.trim() !== '';
+      filtroCelular.trim() !== '' ||
+      // Añadir comprobación de filtro de fechas
+      (fechaInicio !== null && fechaFin !== null);
   };
 
   // Función handlePageChange mejorada
@@ -621,12 +693,44 @@ function App() {
   };
 
 
-  // Este código debe reemplazar la sección actual de filtrado por Celular
-  // que se encuentra dentro de la función filteredData en el archivo App.tsx
-  // Aproximadamente en la línea ~475-490 del código
-
   const filteredData = useMemo(() => {
     console.time('Filtrado');
+
+    // Añadir log para diagnóstico
+    console.log("Datos antes de filtrar:", clientesData.map(cliente => ({
+      serie: cliente.serie,
+      ultimaVisita: cliente.ultimaVisita,
+      fechaFAC: cliente.ultimaVisita ? formatearFechaTabla(cliente.ultimaVisita) : 'No tiene fecha'
+    })));
+
+    // Verificar si hay modelos o APS que no están en las listas
+    const modelosNoIncluidos = new Set();
+    const apsNoIncluidos = new Set();
+    clientesData.forEach(cliente => {
+      if (cliente.modelo && !modelosNissan.includes(cliente.modelo)) {
+        modelosNoIncluidos.add(cliente.modelo);
+      }
+      if (cliente.aps && !asesorAPS.includes(cliente.aps)) {
+        apsNoIncluidos.add(cliente.aps);
+      }
+    });
+    if (modelosNoIncluidos.size > 0) {
+      console.log("¡ALERTA! Modelos en los datos que no están en modelosNissan:", [...modelosNoIncluidos]);
+    }
+    if (apsNoIncluidos.size > 0) {
+      console.log("¡ALERTA! Asesores APS en los datos que no están en asesorAPS:", [...apsNoIncluidos]);
+    }
+
+    // Variables para contar rechazos por tipo de filtro
+    let rechazadosPorSerie = 0;
+    let rechazadosPorFecha = 0;
+    let rechazadosPorAgencia = 0;
+    let rechazadosPorModelo = 0;
+    let rechazadosPorAño = 0;
+    let rechazadosPorPaquete = 0;
+    let rechazadosPorAPS = 0;
+    let rechazadosPorNombreFactura = 0;
+    let rechazadosPorCelular = 0;
 
     // Lógica para buscar por múltiples series
     const seriesABuscar = searchTerm
@@ -644,45 +748,123 @@ function App() {
             serieLower.includes(term)
           );
 
-          if (!coincideConAlguno) return false;
+          if (!coincideConAlguno) {
+            rechazadosPorSerie++;
+            return false;
+          }
         }
         // En modo simple, debe coincidir con el término único
         else if (!cliente.serie.toLowerCase().includes(seriesABuscar[0])) {
+          rechazadosPorSerie++;
           return false;
+        }
+      }
+
+
+      // Filtro por fecha - implementación completamente corregida
+      if (fechaInicio && fechaFin) {
+        // Si el cliente no tiene fecha, lo excluimos
+        if (!cliente.ultimaVisita) {
+          console.log(`Cliente sin fecha excluido: ${cliente.serie}`);
+          rechazadosPorFecha++;
+          return false;
+        }
+
+        // Crear copias sin la hora para comparación correcta
+        const inicio = new Date(fechaInicio.getFullYear(), fechaInicio.getMonth(), fechaInicio.getDate());
+        const fin = new Date(fechaFin.getFullYear(), fechaFin.getMonth(), fechaFin.getDate());
+        const fechaCliente = new Date(
+          cliente.ultimaVisita.getFullYear(),
+          cliente.ultimaVisita.getMonth(),
+          cliente.ultimaVisita.getDate()
+        );
+
+        console.log(`Comparando ${formatearFechaTabla(fechaCliente)} con rango ${formatearFechaTabla(inicio)} - ${formatearFechaTabla(fin)}`);
+
+        // IMPLEMENTACIÓN CORRECTA DEL FILTRO DE FECHAS
+        // Comprobar si:
+        // 1. El año coincide exactamente con el seleccionado
+        // 2. O el usuario ha habilitado específicamente el filtrado flexible por mes/día
+
+        // Variable para activar/desactivar filtrado flexible (ignora el año)
+        const filtradoFlexible = false;  // Cambia a true si quieres que ignore el año
+
+        if (filtradoFlexible) {
+          // MODO FLEXIBLE: Comparar solo mes y día, ignorando el año
+          const mesInicio = inicio.getMonth();
+          const diaInicio = inicio.getDate();
+          const mesFin = fin.getMonth();
+          const diaFin = fin.getDate();
+          const mesCliente = fechaCliente.getMonth();
+          const diaCliente = fechaCliente.getDate();
+
+          let dentroDeRango = false;
+
+          // Verificar si el mes y día están en el rango seleccionado
+          if (mesInicio <= mesFin) {
+            // Caso normal: Ene-Mar del mismo año
+            dentroDeRango = (
+              (mesCliente > mesInicio || (mesCliente === mesInicio && diaCliente >= diaInicio)) &&
+              (mesCliente < mesFin || (mesCliente === mesFin && diaCliente <= diaFin))
+            );
+          } else {
+            // Caso especial: Nov-Feb (cruza fin de año)
+            dentroDeRango = (
+              (mesCliente > mesInicio || (mesCliente === mesInicio && diaCliente >= diaInicio)) ||
+              (mesCliente < mesFin || (mesCliente === mesFin && diaCliente <= diaFin))
+            );
+          }
+
+          if (!dentroDeRango) {
+            rechazadosPorFecha++;
+            return false;
+          }
+        } else {
+          // MODO ESTRICTO: La fecha debe estar exactamente en el rango seleccionado
+          if (fechaCliente < inicio || fechaCliente > fin) {
+            console.log(`Fecha ${formatearFechaTabla(fechaCliente)} fuera del rango seleccionado`);
+            rechazadosPorFecha++;
+            return false;
+          }
         }
       }
 
       // Filtro por agencia
       if (!agenciasSeleccionadas[cliente.agencia]) {
+        rechazadosPorAgencia++;
         return false;
       }
 
       // Filtro por modelo
       if (!modelosSeleccionados[cliente.modelo]) {
+        rechazadosPorModelo++;
         return false;
       }
 
       // Filtro por año
       if (!añosSeleccionados[cliente.año.toString()]) {
+        rechazadosPorAño++;
         return false;
       }
 
       // Filtro por paquete
       if (cliente.paquete && !paquetesSeleccionados[cliente.paquete]) {
+        rechazadosPorPaquete++;
         return false;
       }
 
       // Filtro por APS
       if (cliente.aps && !apsSeleccionados[cliente.aps]) {
+        rechazadosPorAPS++;
         return false;
       }
 
       // Filtro por Nombre Factura
       if (filtroNombreFactura.trim() !== '' && !cliente.nombreFactura.toLowerCase().includes(filtroNombreFactura.trim().toLowerCase())) {
+        rechazadosPorNombreFactura++;
         return false;
       }
 
-      // AQUÍ ES DONDE DEBES REEMPLAZAR EL CÓDIGO EXISTENTE DE FILTRO POR CELULAR
       // Filtro por Celular
       if (filtroCelular.trim() !== '') {
         // Verificar todos los campos de contacto
@@ -692,6 +874,7 @@ function App() {
         const cloudtalkMatch = determinaCloudTalk(cliente)?.includes(filtroCelular.trim()) || false;
 
         if (!celularMatch && !telefonoMatch && !oficinaMatch && !cloudtalkMatch) {
+          rechazadosPorCelular++;
           return false;
         }
       }
@@ -699,6 +882,26 @@ function App() {
       // Si pasa todos los filtros, incluir el cliente
       return true;
     });
+
+    // Log para diagnóstico del resultado
+    console.log(`Registros rechazados por filtro:
+      - Serie: ${rechazadosPorSerie}
+      - Fecha: ${rechazadosPorFecha}
+      - Agencia: ${rechazadosPorAgencia}
+      - Modelo: ${rechazadosPorModelo}
+      - Año: ${rechazadosPorAño}
+      - Paquete: ${rechazadosPorPaquete}
+      - APS: ${rechazadosPorAPS}
+      - Nombre Factura: ${rechazadosPorNombreFactura}
+      - Celular: ${rechazadosPorCelular}
+    `);
+    console.log(`Total de registros filtrados: ${result.length}`);
+    if (result.length > 0) {
+      console.log("Primeros 5 registros filtrados:", result.slice(0, 5).map(cliente => ({
+        serie: cliente.serie,
+        ultimaVisita: cliente.ultimaVisita ? formatearFechaTabla(cliente.ultimaVisita) : 'No tiene fecha'
+      })));
+    }
 
     console.timeEnd('Filtrado');
     return result;
@@ -711,7 +914,9 @@ function App() {
     paquetesSeleccionados,
     apsSeleccionados,
     filtroNombreFactura,
-    filtroCelular  // Asegúrate de que filtroCelular esté incluido en las dependencias
+    filtroCelular,
+    fechaInicio,
+    fechaFin
   ]);
 
   // Luego modifica getCurrentItems para usar el dato memoizado
@@ -1180,8 +1385,14 @@ function App() {
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
           <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-red-600 mx-auto mb-4"></div>
-          <h2 className="text-xl font-semibold text-gray-700">Cargando datos...</h2>
-          <p className="text-gray-500">Por favor espere mientras se cargan los datos del sistema.</p>
+          <h2 className="text-xl font-semibold text-gray-700">
+            {cargandoFiltrosCompletos ? 'Cargando agencias y paquetes completos...' : 'Cargando datos...'}
+          </h2>
+          <p className="text-gray-500">
+            {cargandoFiltrosCompletos
+              ? 'Por favor espere mientras se procesan todos los registros para obtener la lista completa de agencias y paquetes.'
+              : 'Por favor espere mientras se cargan los datos del sistema.'}
+          </p>
         </div>
       </div>
     );
@@ -1268,11 +1479,9 @@ function App() {
             >
               <span className={mostrarFiltroAgencia ? "font-medium" : ""}>
                 Agencia{' '}
-                {Object.values(agenciasSeleccionadas).filter(v => v).length > 0 && (
-                  <span className="text-xs ml-1">
-                    ({Object.values(agenciasSeleccionadas).filter(v => v).length})
-                  </span>
-                )}
+                <span className="text-xs ml-1">
+                  ({Object.values(agenciasSeleccionadas).filter(v => v).length}/{agenciasDisponibles.length})
+                </span>
               </span>
               <ChevronDown className="w-4 h-4 text-gray-400" />
             </button>
@@ -1433,11 +1642,9 @@ function App() {
             >
               <span className={mostrarFiltroPaquete ? "font-medium" : ""}>
                 Paquete{' '}
-                {Object.values(paquetesSeleccionados).filter(v => v).length > 0 && (
-                  <span className="text-xs ml-1">
-                    ({Object.values(paquetesSeleccionados).filter(v => v).length})
-                  </span>
-                )}
+                <span className="text-xs ml-1">
+                  ({Object.values(paquetesSeleccionados).filter(v => v).length}/{paquetesDisponibles.length})
+                </span>
               </span>
               <ChevronDown className="w-4 h-4 text-gray-400" />
             </button>
@@ -1538,12 +1745,18 @@ function App() {
           <div className="relative">
             <button
               onClick={toggleCalendario}
-              className="w-full flex justify-between items-center border border-gray-300 rounded-md px-3 py-2 bg-white text-left"
+              className={`w-full flex justify-between items-center border border-gray-300 rounded-md px-3 py-2 bg-white text-left ${(fechaInicio && fechaFin) ? 'text-red-600 font-medium' : ''
+                }`}
             >
               <span className={mostrarCalendario ? "font-medium" : ""}>
                 {fechaInicio && fechaFin
                   ? `${formatearFecha(fechaInicio)} - ${formatearFecha(fechaFin)}`
-                  : "Período automático"}
+                  : "Período (sin filtro)"}
+                {fechaInicio && fechaFin && (
+                  <span className="ml-1 bg-red-100 text-red-800 text-xs px-1 rounded">
+                    Filtrado
+                  </span>
+                )}
               </span>
               <ChevronDown className="w-4 h-4 text-gray-400" />
             </button>
@@ -1763,7 +1976,11 @@ function App() {
           <div className="flex items-center space-x-2">
             <Calendar className="w-4 h-4 text-gray-500" />
             <span className="text-sm text-gray-600">Período:</span>
-            <div className="text-sm font-medium">14 Mar 2023 - 14 Mar 2024</div>
+            <div className="text-sm font-medium">
+              {fechaInicio && fechaFin
+                ? `${formatearFecha(fechaInicio)} - ${formatearFecha(fechaFin)}`
+                : "Período automático (sin filtro de fecha)"}
+            </div>
           </div>
           <div className="flex space-x-3"> {/* Añadimos un div para contener ambos botones */}
             <button
