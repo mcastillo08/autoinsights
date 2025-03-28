@@ -46,41 +46,57 @@ let csvTextCache: string | null = null;
 let clientesDataCache: Cliente[] | null = null;
 let totalRegistros = 0;
 let paginasServidas: Record<number, boolean> = {}; // Registro de páginas ya servidas
-
-
+let todosCargados = false; // Flag para saber si ya se cargaron todos los datos
 
 // Nueva función mejorada para obtener una porción de los datos
+// Modificada para cargar todos los datos de una vez
 export const obtenerClientesPaginados = async (
   pagina: number,
-  elementosPorPagina: number
+  elementosPorPagina: number,
+  precargaCompleta: boolean = true // Cambiado a true por defecto
 ): Promise<{ clientes: Cliente[], total: number }> => {
   try {
     // Si no tenemos los datos en caché, los cargamos
     if (!clientesDataCache) {
       console.log('No hay caché, cargando datos CSV...');
       await cargarDatosCSVCompleto();
+      todosCargados = true;
     }
 
     if (!clientesDataCache) {
       throw new Error('No se pudieron cargar los datos');
     }
 
-    // Calcular índices para la paginación
-    const inicio = (pagina - 1) * elementosPorPagina;
+    // Si ya se cargaron todos los datos o se solicita la primera página, devolvemos todo
+    if (todosCargados || pagina === 1 || precargaCompleta) {
+      console.log(`Devolviendo todos los datos cargados: ${clientesDataCache.length} registros`);
+      
+      // Si estamos devolviendo todos los datos, asegurémonos de marcar todas las páginas como servidas
+      const totalPaginas = Math.ceil(clientesDataCache.length / elementosPorPagina);
+      for (let i = 1; i <= totalPaginas; i++) {
+        paginasServidas[i] = true;
+      }
+      
+      return {
+        clientes: clientesDataCache,
+        total: totalRegistros
+      };
+    }
 
-    // Verificar si estamos intentando acceder más allá del final del array
+    // Este código ya no se ejecutará debido a que todosCargados será true,
+    // pero lo mantenemos por compatibilidad
+    const inicio = (pagina - 1) * elementosPorPagina;
+    const fin = Math.min(inicio + elementosPorPagina, clientesDataCache.length);
+
     if (inicio >= clientesDataCache.length) {
       console.warn(`Página ${pagina} fuera de rango: inicio (${inicio}) > longitud (${clientesDataCache.length})`);
-
-      // Si hemos llegado al final de los datos disponibles, retornar el último lote
+      
       if (clientesDataCache.length > 0) {
         const ultimaPagina = Math.ceil(clientesDataCache.length / elementosPorPagina);
         const inicioCorregido = (ultimaPagina - 1) * elementosPorPagina;
         const finCorregido = clientesDataCache.length;
 
         console.log(`Retornando última página ${ultimaPagina}: ${inicioCorregido}-${finCorregido}`);
-
-        // Marcar esta página como servida
         paginasServidas[ultimaPagina] = true;
 
         return {
@@ -89,20 +105,13 @@ export const obtenerClientesPaginados = async (
         };
       }
 
-      // Si no hay datos, retornar array vacío
       return {
         clientes: [],
         total: totalRegistros
       };
     }
 
-    // Calcular el fin, asegurándose de no exceder el tamaño del array
-    const fin = Math.min(inicio + elementosPorPagina, clientesDataCache.length);
-
-    // Obtener los clientes de la página actual
     const clientesPagina = clientesDataCache.slice(inicio, fin);
-
-    // Registrar que esta página ha sido servida
     paginasServidas[pagina] = true;
 
     console.log(`Retornando página ${pagina} con ${clientesPagina.length} registros de ${totalRegistros} totales (${inicio}-${fin})`);
@@ -117,6 +126,98 @@ export const obtenerClientesPaginados = async (
   }
 };
 
+export const obtenerMetadatosFiltros = async (): Promise<{
+  agencias: string[];
+  modelos: string[];
+  años: string[];
+  paquetes: string[];
+  asesores: string[];
+}> => {
+  try {
+    // Si no tenemos los datos en caché, los cargamos
+    if (!clientesDataCache) {
+      console.log('No hay caché, cargando datos CSV para metadatos...');
+      await cargarDatosCSVCompleto();
+      todosCargados = true;
+    }
+
+    if (!clientesDataCache) {
+      throw new Error('No se pudieron cargar los datos');
+    }
+
+    // Extraer todos los valores únicos para cada filtro
+    const agencias = Array.from(new Set(clientesDataCache.map(cliente => cliente.agencia.trim())))
+      .filter(agencia => agencia)
+      .sort();
+
+    // Extraer todos los modelos únicos
+    const modelos = Array.from(new Set(clientesDataCache.map(cliente => cliente.modelo)))
+      .filter(modelo => modelo)
+      .sort();
+
+    // Extraer todos los años únicos
+    const años = Array.from(new Set(clientesDataCache.map(cliente => cliente.año.toString())))
+      .filter(año => año)
+      .sort((a, b) => Number(b) - Number(a)); // Ordenar descendente
+
+    // Extraer todos los paquetes únicos
+    const paquetes = Array.from(new Set(clientesDataCache.map(cliente =>
+      cliente.paquete !== undefined ? cliente.paquete : 'null'
+    )))
+      .filter(paquete => paquete !== undefined)
+      .sort();
+
+    // Extraer todos los asesores APS únicos
+    const asesores = Array.from(new Set(clientesDataCache.map(cliente => cliente.aps)))
+      .filter((asesor): asesor is string => asesor !== undefined && asesor !== null)
+      .sort();
+
+    console.log(`Metadatos extraídos: ${agencias.length} agencias, ${modelos.length} modelos, ${años.length} años, ${paquetes.length} paquetes, ${asesores.length} asesores`);
+    console.log('Agencias disponibles:', agencias);
+
+    return {
+      agencias,
+      modelos,
+      años,
+      paquetes,
+      asesores
+    };
+  } catch (error) {
+    console.error('Error al obtener metadatos de filtros:', error);
+    throw error;
+  }
+};
+
+export const obtenerTodasAgencias = async (): Promise<string[]> => {
+  try {
+    // Si no tenemos los datos en caché, los cargamos
+    if (!clientesDataCache) {
+      console.log('No hay caché, cargando datos CSV para obtener todas las agencias...');
+      await cargarDatosCSVCompleto();
+      todosCargados = true;
+    }
+
+    if (!clientesDataCache) {
+      throw new Error('No se pudieron cargar los datos');
+    }
+
+    // Extraer todas las agencias únicas (procesando el CSV completo)
+    const agenciasSet = new Set<string>();
+    clientesDataCache.forEach(cliente => {
+      if (cliente.agencia && cliente.agencia.trim()) {
+        agenciasSet.add(cliente.agencia.trim());
+      }
+    });
+
+    const agencias = Array.from(agenciasSet).sort();
+    console.log(`Obtenidas ${agencias.length} agencias únicas del CSV completo (${clientesDataCache.length} registros)`);
+
+    return agencias;
+  } catch (error) {
+    console.error('Error al obtener todas las agencias:', error);
+    return [];
+  }
+};
 
 // Función para mapear de CSV a Cliente (con mejor manejo de tipos)
 const mapearClienteCSVaCliente = (clienteCSV: ClienteCSV, index: number): Cliente => {
@@ -328,6 +429,9 @@ const cargarDatosCSVCompleto = async (intentos = 3): Promise<void> => {
 
     console.log(`Se han mapeado ${clientesDataCache.length} registros de clientes.`);
 
+    // Establecer que todos los datos están cargados
+    todosCargados = true;
+
     // Reiniciar el registro de páginas servidas
     paginasServidas = { 1: true };
 
@@ -346,6 +450,7 @@ const cargarDatosCSVCompleto = async (intentos = 3): Promise<void> => {
     csvTextCache = null;
     clientesDataCache = null;
     paginasServidas = {};
+    todosCargados = false;
     throw error;
   }
 };
@@ -381,5 +486,6 @@ export const limpiarCacheCSV = (): void => {
   clientesDataCache = null;
   totalRegistros = 0;
   paginasServidas = {};
+  todosCargados = false;
   console.log('Caché de datos CSV limpiada');
 };
