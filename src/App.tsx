@@ -5,6 +5,7 @@ import { obtenerClientesPaginados, Cliente, limpiarCacheCSV, obtenerMetadatosFil
 import FiltroPorSerieAvanzado from './components/FiltroPorSerieAvanzado';
 import { obtenerHistorialBusquedas, guardarEnHistorial } from './service/HistorialBusquedas';
 import { debounce } from 'lodash';
+import FilterLoader from './FilterLoader';
 
 
 type AgenciasType = {
@@ -234,6 +235,7 @@ const formatearFechaTabla = (fecha: Date): string => {
 
 function App() {
   // Estados para la carga de datos
+  const [isFiltering, setIsFiltering] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [errorCarga, setErrorCarga] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState<string>('');
@@ -546,6 +548,7 @@ function App() {
   const handlePageChange = (newPage: number) => {
     // Evitar procesamiento si ya está cargando
     if (cargandoPagina) return;
+    setIsFiltering(true);
 
     console.log(`Cambiando a página ${newPage}`);
 
@@ -575,6 +578,7 @@ function App() {
   };
 
   const resetearFiltros = () => {
+    setIsFiltering(true);
     // Resetear filtro de búsqueda por serie
     setSearchTerm('');
 
@@ -638,6 +642,9 @@ function App() {
 
   const filteredData = useMemo(() => {
     console.time('Filtrado');
+
+    // Mostrar loader mientras se filtra
+    setIsFiltering(true);
 
     // Añadir log para diagnóstico
     console.log("Datos antes de filtrar:", clientesData.map(cliente => ({
@@ -846,6 +853,12 @@ function App() {
     }
 
     console.timeEnd('Filtrado');
+
+    // Usar setTimeout para un pequeño retraso y que el loader sea visible
+    setTimeout(() => {
+      setIsFiltering(false);
+    }, 300);
+
     return result;
   }, [
     clientesData,
@@ -915,22 +928,26 @@ function App() {
 
   // Función para manejar los cambios en los checkboxes de paquete
   const handlePaqueteCheckbox = (paquete: string) => {
+    setIsFiltering(true);
     setPaquetesSeleccionados(prev => ({
       ...prev,
       [paquete]: !prev[paquete]
     }));
   };
 
-  // Función para manejar los cambios en los checkboxes de APS
+  // Manejador para checkboxes de APS
   const handleAPSCheckbox = (aps: string) => {
+    setIsFiltering(true);
     setAPSSeleccionados(prev => ({
       ...prev,
       [aps]: !prev[aps]
     }));
   };
 
+
   // Función para seleccionar solamente un APS
   const handleSolamenteAPS = (aps: string) => {
+    setIsFiltering(true);
     const nuevosAPS: APSType = {};
     Object.keys(apsSeleccionados).forEach(key => {
       nuevosAPS[key] = key === aps;
@@ -938,8 +955,9 @@ function App() {
     setAPSSeleccionados(nuevosAPS);
   };
 
-  // Función para seleccionar solamente un paquete
+  // Manejador para seleccionar solamente un paquete
   const handleSolamentePaquete = (paquete: string) => {
+    setIsFiltering(true);
     const nuevosPaquetes: PaquetesType = {};
     Object.keys(paquetesSeleccionados).forEach(key => {
       nuevosPaquetes[key] = key === paquete;
@@ -949,14 +967,16 @@ function App() {
 
   // Función para manejar los cambios en los checkboxes de agencia
   const handleAgenciaCheckbox = (agencia: string) => {
+    setIsFiltering(true);
     setAgenciasSeleccionadas(prev => ({
       ...prev,
       [agencia]: !prev[agencia]
     }));
   };
 
-  // Función para manejar los cambios en los checkboxes de modelo
+  // Manejador para checkboxes de modelo
   const handleModeloCheckbox = (modelo: string) => {
+    setIsFiltering(true);
     setModelosSeleccionados(prev => ({
       ...prev,
       [modelo]: !prev[modelo]
@@ -965,6 +985,7 @@ function App() {
 
   // Función para manejar los checkboxes de año modelo
   const handleAñoCheckbox = (año: string) => {
+    setIsFiltering(true);
     setAñosSeleccionados(prev => ({
       ...prev,
       [año]: !prev[año]
@@ -1232,6 +1253,7 @@ function App() {
   };
 
   const seleccionarFecha = (dia: number, esMesInicio: boolean) => {
+    setIsFiltering(true);
     const mes = esMesInicio ? mesInicio : mesFin;
     const fechaSeleccionada = new Date(mes.getFullYear(), mes.getMonth(), dia);
 
@@ -1357,6 +1379,7 @@ function App() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Modal overlay para cerrar el menú cuando se hace clic fuera de él */}
+      <FilterLoader visible={isFiltering} />
       {(mostrarFiltroAgencia || mostrarFiltroModelo || mostrarFiltroAño || mostrarFiltroPaquete || mostrarFiltroAPS || mostrarCalendario) && (
         <div
           className="fixed inset-0 z-40"
@@ -1397,9 +1420,9 @@ function App() {
             <DiasSinVisitaRangeSlider
               onRangeChange={handleDiasSinVisitaRangeChange}
               initialMin={1}
-              initialMax={250}
+              initialMax={4800}
               absoluteMin={0}
-              absoluteMax={250}
+              absoluteMax={4800}
             />
           </div>
         </div>

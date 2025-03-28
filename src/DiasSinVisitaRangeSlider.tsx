@@ -12,9 +12,9 @@ interface DiasSinVisitaRangeSliderProps {
 const DiasSinVisitaRangeSlider: React.FC<DiasSinVisitaRangeSliderProps> = ({
   onRangeChange,
   initialMin = 0,
-  initialMax = 250,
+  initialMax = 4800,
   absoluteMin = 0,
-  absoluteMax = 250
+  absoluteMax = 4800
 }) => {
   const [minValue, setMinValue] = useState<number>(initialMin);
   const [maxValue, setMaxValue] = useState<number>(initialMax);
