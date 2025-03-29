@@ -256,10 +256,9 @@ function App() {
 
   const [cargandoPagina, setCargandoPagina] = useState<boolean>(false);
   const [totalRegistros, setTotalRegistros] = useState<number>(0);
-  // @ts-ignore
+  // Por estas correctas:
   const [minDiasSinVisita, setMinDiasSinVisita] = useState<number>(0);
-  // @ts-ignore
-  const [maxDiasSinVisita, setMaxDiasSinVisita] = useState<number>(250);
+  const [maxDiasSinVisita, setMaxDiasSinVisita] = useState<number>(4800);
 
   // Agregar estos estados junto a los demás estados al inicio de la función App()
   const [filtroNombreFactura, setFiltroNombreFactura] = useState<string>('');
@@ -531,17 +530,30 @@ function App() {
     return inicial;
   });
 
+  // Función optimizada para detectar filtros activos
   const hayFiltrosActivos = (): boolean => {
-    return Object.values(agenciasSeleccionadas).some(v => !v) ||
+    // Comprobar filtros directos de manera rápida
+    if (searchTerm.trim() !== '' ||
+      filtroNombreFactura.trim() !== '' ||
+      filtroCelular.trim() !== '' ||
+      fechaInicio !== null ||
+      fechaFin !== null ||
+      minDiasSinVisita > 0 ||
+      maxDiasSinVisita < 4800) {
+      return true;
+    }
+
+    // Comprobar filtros de checkboxes
+    // Uso de Array.some() para optimizar la detección de filtros no seleccionados
+    if (Object.values(agenciasSeleccionadas).some(v => !v) ||
       Object.values(modelosSeleccionados).some(v => !v) ||
       Object.values(añosSeleccionados).some(v => !v) ||
       Object.values(paquetesSeleccionados).some(v => !v) ||
-      Object.values(apsSeleccionados).some(v => !v) ||
-      searchTerm.trim() !== '' ||
-      filtroNombreFactura.trim() !== '' ||
-      filtroCelular.trim() !== '' ||
-      // Añadir comprobación de filtro de fechas
-      (fechaInicio !== null && fechaFin !== null);
+      Object.values(apsSeleccionados).some(v => !v)) {
+      return true;
+    }
+
+    return false;
   };
 
   // Función handlePageChange mejorada
@@ -640,36 +652,16 @@ function App() {
   };
 
 
+  // 1. Añadir al useMemo de filteredData el filtro por días sin visita
+
   const filteredData = useMemo(() => {
     console.time('Filtrado');
 
     // Mostrar loader mientras se filtra
     setIsFiltering(true);
 
-    // Añadir log para diagnóstico
-    console.log("Datos antes de filtrar:", clientesData.map(cliente => ({
-      serie: cliente.serie,
-      ultimaVisita: cliente.ultimaVisita,
-      fechaFAC: cliente.ultimaVisita ? formatearFechaTabla(cliente.ultimaVisita) : 'No tiene fecha'
-    })));
-
-    // Verificar si hay modelos o APS que no están en las listas
-    const modelosNoIncluidos = new Set();
-    const apsNoIncluidos = new Set();
-    clientesData.forEach(cliente => {
-      if (cliente.modelo && !modelosNissan.includes(cliente.modelo)) {
-        modelosNoIncluidos.add(cliente.modelo);
-      }
-      if (cliente.aps && !asesorAPS.includes(cliente.aps)) {
-        apsNoIncluidos.add(cliente.aps);
-      }
-    });
-    if (modelosNoIncluidos.size > 0) {
-      console.log("¡ALERTA! Modelos en los datos que no están en modelosNissan:", [...modelosNoIncluidos]);
-    }
-    if (apsNoIncluidos.size > 0) {
-      console.log("¡ALERTA! Asesores APS en los datos que no están en asesorAPS:", [...apsNoIncluidos]);
-    }
+    // Reducir la cantidad de logs para mejorar rendimiento
+    // console.log("Datos antes de filtrar:", clientesData.length);
 
     // Variables para contar rechazos por tipo de filtro
     let rechazadosPorSerie = 0;
@@ -681,6 +673,7 @@ function App() {
     let rechazadosPorAPS = 0;
     let rechazadosPorNombreFactura = 0;
     let rechazadosPorCelular = 0;
+    let rechazadosPorDiasSinVisita = 0;
 
     // Lógica para buscar por múltiples series
     const seriesABuscar = searchTerm
@@ -688,139 +681,110 @@ function App() {
       .map(term => term.trim().toLowerCase())
       .filter(term => term.length > 0);
 
+    // Pre-comprobación para filtros comunes para mejorar rendimiento
+    const filtrarPorSerie = seriesABuscar.length > 0;
+    const filtrarPorFecha = fechaInicio !== null && fechaFin !== null;
+    const filtrarPorDiasSinVisita = minDiasSinVisita > 0 || maxDiasSinVisita < 4800;
+    const filtrarPorNombreFactura = filtroNombreFactura.trim() !== '';
+    const filtrarPorCelular = filtroCelular.trim() !== '';
+
+    // Determinar si hay filtros de checkbox que no están todos seleccionados
+    const hayFiltroAgencia = Object.values(agenciasSeleccionadas).some(v => !v);
+    const hayFiltroModelo = Object.values(modelosSeleccionados).some(v => !v);
+    const hayFiltroAño = Object.values(añosSeleccionados).some(v => !v);
+    const hayFiltroPaquete = Object.values(paquetesSeleccionados).some(v => !v);
+    const hayFiltroAPS = Object.values(apsSeleccionados).some(v => !v);
+
     const result = clientesData.filter(cliente => {
-      // Si hay términos de búsqueda de serie
-      if (seriesABuscar.length > 0) {
-        // En modo múltiple (separado por comas), cualquier coincidencia es válida
+      // Filtro por serie
+      if (filtrarPorSerie) {
         if (seriesABuscar.length > 1) {
           const serieLower = cliente.serie.toLowerCase();
-          const coincideConAlguno = seriesABuscar.some(term =>
-            serieLower.includes(term)
-          );
-
+          const coincideConAlguno = seriesABuscar.some(term => serieLower.includes(term));
           if (!coincideConAlguno) {
             rechazadosPorSerie++;
             return false;
           }
-        }
-        // En modo simple, debe coincidir con el término único
-        else if (!cliente.serie.toLowerCase().includes(seriesABuscar[0])) {
+        } else if (!cliente.serie.toLowerCase().includes(seriesABuscar[0])) {
           rechazadosPorSerie++;
           return false;
         }
       }
 
+      // Filtro por días sin visita - optimizado
+      if (filtrarPorDiasSinVisita) {
+        if (!cliente.diasSinVenir ||
+          cliente.diasSinVenir < minDiasSinVisita ||
+          cliente.diasSinVenir > maxDiasSinVisita) {
+          rechazadosPorDiasSinVisita++;
+          return false;
+        }
+      }
 
-      // Filtro por fecha - implementación completamente corregida
-      if (fechaInicio && fechaFin) {
-        // Si el cliente no tiene fecha, lo excluimos
+      // Filtro por fecha - versión optimizada
+      if (filtrarPorFecha) {
         if (!cliente.ultimaVisita) {
-          console.log(`Cliente sin fecha excluido: ${cliente.serie}`);
           rechazadosPorFecha++;
           return false;
         }
 
-        // Crear copias sin la hora para comparación correcta
-        const inicio = new Date(fechaInicio.getFullYear(), fechaInicio.getMonth(), fechaInicio.getDate());
-        const fin = new Date(fechaFin.getFullYear(), fechaFin.getMonth(), fechaFin.getDate());
+        const inicio = new Date(fechaInicio!.getFullYear(), fechaInicio!.getMonth(), fechaInicio!.getDate());
+        const fin = new Date(fechaFin!.getFullYear(), fechaFin!.getMonth(), fechaFin!.getDate());
         const fechaCliente = new Date(
           cliente.ultimaVisita.getFullYear(),
           cliente.ultimaVisita.getMonth(),
           cliente.ultimaVisita.getDate()
         );
 
-        console.log(`Comparando ${formatearFechaTabla(fechaCliente)} con rango ${formatearFechaTabla(inicio)} - ${formatearFechaTabla(fin)}`);
-
-        const filtradoFlexible = false;  // Cambia a true si quieres que ignore el año
-
-        if (filtradoFlexible) {
-          // MODO FLEXIBLE: Comparar solo mes y día, ignorando el año
-          const mesInicio = inicio.getMonth();
-          const diaInicio = inicio.getDate();
-          const mesFin = fin.getMonth();
-          const diaFin = fin.getDate();
-          const mesCliente = fechaCliente.getMonth();
-          const diaCliente = fechaCliente.getDate();
-
-          let dentroDeRango = false;
-
-          // Verificar si el mes y día están en el rango seleccionado
-          if (mesInicio <= mesFin) {
-            // Caso normal: Ene-Mar del mismo año
-            dentroDeRango = (
-              (mesCliente > mesInicio || (mesCliente === mesInicio && diaCliente >= diaInicio)) &&
-              (mesCliente < mesFin || (mesCliente === mesFin && diaCliente <= diaFin))
-            );
-          } else {
-            // Caso especial: Nov-Feb (cruza fin de año)
-            dentroDeRango = (
-              (mesCliente > mesInicio || (mesCliente === mesInicio && diaCliente >= diaInicio)) ||
-              (mesCliente < mesFin || (mesCliente === mesFin && diaCliente <= diaFin))
-            );
-          }
-
-          if (!dentroDeRango) {
-            rechazadosPorFecha++;
-            return false;
-          }
-        } else {
-          // MODO ESTRICTO: La fecha debe estar exactamente en el rango seleccionado
-          if (fechaCliente < inicio || fechaCliente > fin) {
-            console.log(`Fecha ${formatearFechaTabla(fechaCliente)} fuera del rango seleccionado`);
-            rechazadosPorFecha++;
-            return false;
-          }
-        }
-      }
-
-      // Filtro por agencia
-      if (cliente.agencia) {
-        // Añadir diagnóstico
-        console.log(`Verificando agencia: ${cliente.agencia}, ¿Está seleccionada?: ${agenciasSeleccionadas[cliente.agencia]}, ¿Existe en el map?: ${cliente.agencia in agenciasSeleccionadas}`);
-
-        if (!agenciasSeleccionadas[cliente.agencia]) {
-          rechazadosPorAgencia++;
+        if (fechaCliente < inicio || fechaCliente > fin) {
+          rechazadosPorFecha++;
           return false;
         }
       }
 
-      // Filtro por modelo
-      if (!modelosSeleccionados[cliente.modelo]) {
+      // Filtro por agencia - optimizado
+      if (hayFiltroAgencia && cliente.agencia && !agenciasSeleccionadas[cliente.agencia]) {
+        rechazadosPorAgencia++;
+        return false;
+      }
+
+      // Filtro por modelo - optimizado
+      if (hayFiltroModelo && !modelosSeleccionados[cliente.modelo]) {
         rechazadosPorModelo++;
         return false;
       }
 
-      // Filtro por año
-      if (!añosSeleccionados[cliente.año.toString()]) {
+      // Filtro por año - optimizado
+      if (hayFiltroAño && !añosSeleccionados[cliente.año.toString()]) {
         rechazadosPorAño++;
         return false;
       }
 
-      // Filtro por paquete
-      if (cliente.paquete && !paquetesSeleccionados[cliente.paquete]) {
+      // Filtro por paquete - optimizado
+      if (hayFiltroPaquete && cliente.paquete && !paquetesSeleccionados[cliente.paquete]) {
         rechazadosPorPaquete++;
         return false;
       }
 
-      // Filtro por APS
-      if (cliente.aps && !apsSeleccionados[cliente.aps]) {
+      // Filtro por APS - optimizado
+      if (hayFiltroAPS && cliente.aps && !apsSeleccionados[cliente.aps]) {
         rechazadosPorAPS++;
         return false;
       }
 
-      // Filtro por Nombre Factura
-      if (filtroNombreFactura.trim() !== '' && !cliente.nombreFactura.toLowerCase().includes(filtroNombreFactura.trim().toLowerCase())) {
+      // Filtro por Nombre Factura - optimizado
+      if (filtrarPorNombreFactura && !cliente.nombreFactura.toLowerCase().includes(filtroNombreFactura.trim().toLowerCase())) {
         rechazadosPorNombreFactura++;
         return false;
       }
 
-      // Filtro por Celular
-      if (filtroCelular.trim() !== '') {
-        // Verificar todos los campos de contacto
-        const celularMatch = cliente.celular?.includes(filtroCelular.trim()) || false;
-        const telefonoMatch = cliente.telefono?.includes(filtroCelular.trim()) || false;
-        const oficinaMatch = cliente.tOficina?.includes(filtroCelular.trim()) || false;
-        const cloudtalkMatch = determinaCloudTalk(cliente)?.includes(filtroCelular.trim()) || false;
+      // Filtro por Celular - optimizado
+      if (filtrarPorCelular) {
+        const termino = filtroCelular.trim();
+        const celularMatch = cliente.celular?.includes(termino) || false;
+        const telefonoMatch = cliente.telefono?.includes(termino) || false;
+        const oficinaMatch = cliente.tOficina?.includes(termino) || false;
+        const cloudtalkMatch = determinaCloudTalk(cliente)?.includes(termino) || false;
 
         if (!celularMatch && !telefonoMatch && !oficinaMatch && !cloudtalkMatch) {
           rechazadosPorCelular++;
@@ -832,32 +796,14 @@ function App() {
       return true;
     });
 
-    // Log para diagnóstico del resultado
-    console.log(`Registros rechazados por filtro:
-      - Serie: ${rechazadosPorSerie}
-      - Fecha: ${rechazadosPorFecha}
-      - Agencia: ${rechazadosPorAgencia}
-      - Modelo: ${rechazadosPorModelo}
-      - Año: ${rechazadosPorAño}
-      - Paquete: ${rechazadosPorPaquete}
-      - APS: ${rechazadosPorAPS}
-      - Nombre Factura: ${rechazadosPorNombreFactura}
-      - Celular: ${rechazadosPorCelular}
-    `);
-    console.log(`Total de registros filtrados: ${result.length}`);
-    if (result.length > 0) {
-      console.log("Primeros 5 registros filtrados:", result.slice(0, 5).map(cliente => ({
-        serie: cliente.serie,
-        ultimaVisita: cliente.ultimaVisita ? formatearFechaTabla(cliente.ultimaVisita) : 'No tiene fecha'
-      })));
-    }
-
+    // Reducir verbosidad de los logs
+    console.log(`Filtrado completado: ${result.length} de ${clientesData.length} registros coinciden.`);
     console.timeEnd('Filtrado');
 
-    // Usar setTimeout para un pequeño retraso y que el loader sea visible
+    // Ocultar el loader después del filtrado
     setTimeout(() => {
       setIsFiltering(false);
-    }, 300);
+    }, 100); // Reducir el tiempo a 100ms para mejor respuesta
 
     return result;
   }, [
@@ -871,7 +817,9 @@ function App() {
     filtroNombreFactura,
     filtroCelular,
     fechaInicio,
-    fechaFin
+    fechaFin,
+    minDiasSinVisita,
+    maxDiasSinVisita
   ]);
 
   // Luego modifica getCurrentItems para usar el dato memoizado
@@ -1002,13 +950,21 @@ function App() {
     setFiltroCelular(e.target.value);
   };
 
-  // Función para manejar cambios en el input del celular
   const handleDiasSinVisitaRangeChange = (min: number, max: number) => {
+    // No mostrar el loader para cada tecla presionada, solo al aplicar el filtro
+
+    // Si los valores son los mismos que ya tenemos, no hacer nada
+    if (min === minDiasSinVisita && max === maxDiasSinVisita) {
+      return;
+    }
+
     // Caso especial: si ambos valores son 0, mostrar todos los registros
     if (min === 0 && max === 0) {
+      setIsFiltering(true);
       setMinDiasSinVisita(0);
-      setMaxDiasSinVisita(250); // Valor máximo que permita incluir todos tus datos
+      setMaxDiasSinVisita(4800);
     } else {
+      setIsFiltering(true);
       setMinDiasSinVisita(min);
       setMaxDiasSinVisita(max);
     }
@@ -1419,8 +1375,8 @@ function App() {
             </div>
             <DiasSinVisitaRangeSlider
               onRangeChange={handleDiasSinVisitaRangeChange}
-              initialMin={1}
-              initialMax={4800}
+              initialMin={minDiasSinVisita}
+              initialMax={maxDiasSinVisita}
               absoluteMin={0}
               absoluteMax={4800}
             />

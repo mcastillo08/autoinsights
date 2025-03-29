@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import { debounce } from 'lodash';
+import React, { useState, useEffect, useCallback } from 'react';
 
 // Definimos el tipo para las props
 interface DiasSinVisitaRangeSliderProps {
@@ -20,6 +21,14 @@ const DiasSinVisitaRangeSlider: React.FC<DiasSinVisitaRangeSliderProps> = ({
   const [maxValue, setMaxValue] = useState<number>(initialMax);
   const [minInputValue, setMinInputValue] = useState<string>(initialMin.toString());
   const [maxInputValue, setMaxInputValue] = useState<string>(initialMax.toString());
+
+  // Aplicar debounce para evitar actualizaciones excesivas
+  const debouncedOnRangeChange = useCallback(
+    debounce((min: number, max: number) => {
+      onRangeChange(min, max);
+    }, 300),
+    [onRangeChange]
+  );
 
   // Handler para el input de valor mínimo
   const handleMinInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -50,7 +59,7 @@ const DiasSinVisitaRangeSlider: React.FC<DiasSinVisitaRangeSliderProps> = ({
     setMinInputValue(value.toString());
     
     // Notificar al componente padre sobre el cambio
-    onRangeChange(value, maxValue);
+    debouncedOnRangeChange(value, maxValue);
   };
 
   // Función para validar y aplicar el valor máximo cuando el usuario termina de editar
@@ -70,7 +79,7 @@ const DiasSinVisitaRangeSlider: React.FC<DiasSinVisitaRangeSliderProps> = ({
     setMaxInputValue(value.toString());
     
     // Notificar al componente padre sobre el cambio
-    onRangeChange(minValue, value);
+    debouncedOnRangeChange(minValue, value);
   };
 
   // Manejador para la tecla Enter en los inputs
@@ -86,13 +95,24 @@ const DiasSinVisitaRangeSlider: React.FC<DiasSinVisitaRangeSliderProps> = ({
     }
   };
 
-  // Notificar al componente padre cuando los valores cambien
+  // Actualizar valores iniciales si cambian las props
   useEffect(() => {
-    // Solo notificar cuando ambos valores son válidos
-    if (!isNaN(minValue) && !isNaN(maxValue)) {
-      onRangeChange(minValue, maxValue);
+    if (initialMin !== minValue) {
+      setMinValue(initialMin);
+      setMinInputValue(initialMin.toString());
     }
-  }, [minValue, maxValue, onRangeChange]);
+    if (initialMax !== maxValue) {
+      setMaxValue(initialMax);
+      setMaxInputValue(initialMax.toString());
+    }
+  }, [initialMin, initialMax]);
+
+  // Limpiar el debounce cuando el componente se desmonte
+  useEffect(() => {
+    return () => {
+      debouncedOnRangeChange.cancel();
+    };
+  }, [debouncedOnRangeChange]);
 
   return (
     <div className="flex items-center space-x-2">
