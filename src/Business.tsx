@@ -1,11 +1,12 @@
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { Search, ChevronDown, Calendar } from 'lucide-react';
-import DiasSinVisitaRangeSlider from './DiasSinVisitaRangeSlider';
+import DiasSinVisitaRangeSlider from './components/DiasSinVisitaRangeSlider';
 import { obtenerClientesPaginados, Cliente, limpiarCacheCSV, obtenerMetadatosFiltros } from './CsvDataService';
 import FiltroPorSerieAvanzado from './components/FiltroPorSerieAvanzado';
 import { obtenerHistorialBusquedas, guardarEnHistorial } from './service/HistorialBusquedas';
 import { debounce } from 'lodash';
-import FilterLoader from './FilterLoader';
+import FilterLoader from './components/FilterLoader';
+import ExportCSVButton from './components/ExportCSVButton';
 
 type AgenciasType = {
   [key: string]: boolean;
@@ -102,7 +103,7 @@ function App() {
 
   // estados de boton siguiente y anterior
   const [currentPage, setCurrentPage] = useState<number>(1);
-  const itemsPerPage = 500;
+  const itemsPerPage = 700;
 
   const [cargandoPagina, setCargandoPagina] = useState<boolean>(false);
   const [totalRegistros, setTotalRegistros] = useState<number>(0);
@@ -1813,7 +1814,12 @@ function App() {
                 : "Período automático (sin filtro de fecha)"}
             </div>
           </div>
-          <div className="flex space-x-3"> {/* Añadimos un div para contener ambos botones */}
+          <div className="flex space-x-3">
+            <ExportCSVButton
+              tableData={getCurrentItems()}
+              maxRows={500}
+              disabled={isLoading || cargandoPagina || filteredData.length === 0}
+            />
             <button
               onClick={resetearFiltros}
               className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-md text-sm font-medium transition duration-200"
@@ -1824,6 +1830,7 @@ function App() {
               Buscar
             </button>
           </div>
+
         </div>
       </div>
       {cargandoPagina && (
