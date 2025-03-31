@@ -19,158 +19,6 @@ type APSType = {
   [key: string]: boolean;
 };
 
-const modelosNissan = [
-  'VERSA',
-  'NP300',
-  'SENTRA',
-  'MARCH',
-  'TSURU',
-  'TIIDA',
-  'FRONTIER',
-  'X-TRAIL',
-  'ALTIMA',
-  'PATHFINDER',
-  'URVAN',
-  'NV350',
-  'TITAN',
-  'KICKS',
-  'ROGUE',
-  'NOTE',
-  'MAXIMA',
-  'JUKE',
-  'NV2500',
-  'ARMADA',
-  'MURANO',
-  'CABSTAR',
-  '240SX'
-];
-
-// Lista de años modelo
-const añosModelo = [
-  '2025',
-  '2024',
-  '2023',
-  '2022',
-  '2021',
-  '2020',
-  '2019',
-  '2018',
-  '2017',
-  '2016',
-  '2015',
-  '2014'
-];
-
-// Lista de asesores APS
-const asesorAPS = [
-  'APS VIRTUAL',
-  'AARON ALFARO COTA',
-  'AARON VASQUEZ',
-  'ABELARDO MOLINA V.',
-  'ABELARDO MOLINA VALDEZ',
-  'ABRAHAM GUERRERO M.',
-  'ALBERTO VAZQUEZ MARTINEZ',
-  'ALDO FRANCISCO GUTIERREZ VAZ...',
-  'ALEJANDRA ABIGAIL MORENO',
-  'ALEXIS GARCIA',
-  'ANA CRISTINA BONILLA ESCOBAR',
-  'APS VIRTUAL',
-  'ARMANDO RIVERA PIRI',
-  'ASESOR VIRTUAL',
-  'ASESOR VIRTUAL MAG',
-  'BERNARDO HODA...',
-  'BRENDA JOSELYN CORONEL LOPEZ',
-  'CARLOS HECTOR RUBIO RUIZ',
-  'CARLOS RUBIO',
-  'CINTHIA MUNGUIA NUNEZ',
-  'CLAUDIA ANGELICA MARTINEZ JIM...',
-  'CUAHUTEMOC GALINDO LEOS',
-  'DAGOBERTO DOMINGUEZ DURAN',
-  'DAVID ENRIQUE HERNANDEZ CAMP...',
-  'DENISSE SAIZA URIAS',
-  'DEYANIRA ELIZABETH RODRIGUEZ',
-  'DIANA ZULEMA',
-  'DULCE BERENICE ALTAMIRANO OL...',
-  'DULCE MELYNA SILVA LEYVA',
-  'EDUARDO COBOS MARTINEZ',
-  'ENRIQUE MORENO PRECIADO',
-  'ESTHEFANIA INDA BRACAMONTES',
-  'FABIAN LOPEZ PALOMARES',
-  'FERNANDO ENRIQUE GARCIA BUITI...',
-  'FRANCISCA SINIA SOTO JIMENEZ',
-  'FRANCISCO DE JESUS NAVARRO G...',
-  'FRANCISCO JAVIER VALLES VARGAS',
-  'FRANCISCO ROMAN GARCIA PARE...',
-  'FRANCYS FIGUEROA SANTACRUZ',
-  'GABRIEL ANGULO RIOS',
-  'GRECIA CHAVEZ TAPIA',
-  'GRECIA KAROLINA VALADEZ HERDEZ',
-  'GRECIA KAROLINA VALADEZ HERN...',
-  'GUADALUPE ARAGON PARRA',
-  'HECTOR NOE HERNANDEZ MORENO',
-  'HECTOR SALVADOR RODRIGUEZ VA...',
-  'HOMAR ALEJANDRO OLIVAS QUIN...',
-  'HOMAR ALEJANDRO OLIVAS QUINT...',
-  'HUGO RUIZ NAVARRETE',
-  'JAQUELINE MENDOZA RODRIGUEZ',
-  'JESUS EDUARDO MENDEZ MENA',
-  'JESUS LEONARDO LOPEZ FUENTES',
-  'JHOSELYN NATHALY BELTRAN FLOR...',
-  'JORGE CORDOVA',
-  'JOSE ANTONIO SANCHEZ ALVARAD...',
-  'JOSE DE JESUS MIRANDA NAVARRO',
-  'JOSE LUIS LUJAN APARICIO',
-  'JOSGAR OBED LOPEZ FUENTES',
-  'JUAN CARLOS LEON',
-  'JUAN JESUS GALVEZ MONTANO',
-  'JUAN JESUS GALVEZ MONTAñO',
-  'JUDITH MILAGROS GALLEGOS MO...',
-  'KAREN RIVERA ROMAN',
-  'KARIME JAIDAR AVILA',
-  'LEONARDO ALBERTO PALOMARES',
-  'LISSETH LOPEZ MARTINEZ',
-  'LIZETH VALENCIA MENDEZ',
-  'LUCIA FAUSTO MEDINA',
-  'LUIS ALBERTO TAPIA ACOSTA',
-  'LUIS ANGEL FISHER ESCOBEDO',
-  'MARCO ANTONIO MENDEZ VALDEZ',
-  'MARIA GABRIELA CASTILLO ROSAS',
-  'MARIA GLORIA GPE RAMIREZ LOPEZ',
-  'MARIA ISABEL CELAYA VEGA',
-  'MARITZA MARTINEZ FRASQUILLO',
-  'MARLENE LOPEZ LAURO',
-  'MARTIN EDUARDO BAY ARELLANO',
-  'MAYRA JAQUELINE GARIBAY FELIX',
-  'MIGUEL ANGEL CORDOVA LEON',
-  'MILEYDI MERLIN ARAUJO MANRIQU...',
-  'NALLELY LOPEZ',
-  'NOELIA GUADALUPE TANORI CABR...',
-  'NOELIA GUADALUPE TANORI CABREA',
-  'ODALYS GABRIELA YANEZ MIRANDA',
-  'ODALYS YANEZ',
-  'PAOLA FELIX RUBIO',
-  'PAUL RUELAS SOSA',
-  'RAMON SERVANDO RUIZ ESQUER',
-  'RICARDO HERNANDEZ',
-  'RICARDO MORENO OBESO',
-  'RODRIGO GARCIA REYES',
-  'ROSA ANDREA DURAZO AVALOS',
-  'RUBI ADILENE FLORES ESTRELLA',
-  'SANDRA PATRICIA VELDUCEA DIAZ',
-  'SAUL ISAC LIZARRAGA MEZA',
-  'SERGIO FIGUEROA',
-  'TERESA EVANGELINA GASTELUM BA...',
-  'TERESA ITZEL SERRANO JARILLO',
-  'VANNIA TERESITA MENDEZ MENDO...',
-  'VERONICA GISSELLE SALAS GUZM...',
-  'VICTOR ESTEBAN SALAZAR FLORES',
-  'YEIMI KAROL LARA FERREYRA',
-  'YESENIA MAZON',
-  'YESSENIA MAZON',
-  'YEZENIA RIVAS AMAYA'
-];
-
-
 const formatearNumeroTelefonoParaMostrar = (numero?: string): string => {
   if (!numero || numero.trim() === '') {
     return '-';
@@ -246,6 +94,9 @@ function App() {
   const [mostrarFiltroAPS, setMostrarFiltroAPS] = useState<boolean>(false);
   const [paquetesDisponibles, setPaquetesDisponibles] = useState<string[]>([]);
   const [agenciasDisponibles, setAgenciasDisponibles] = useState<string[]>([]);
+  const [modelosDisponibles, setModelosDisponibles] = useState<string[]>([]);
+  const [añosDisponibles, setAñosDisponibles] = useState<string[]>([]);
+  const [asesoresDisponibles, setAsesoresDisponibles] = useState<string[]>([]);
   const [agenciasSeleccionadas, setAgenciasSeleccionadas] = useState<AgenciasType>(() => ({}));
   const [historialBusquedas, setHistorialBusquedas] = useState<string[]>([]);
 
@@ -322,6 +173,24 @@ function App() {
           }
         });
         setPaquetesSeleccionados(paquetesObj);
+
+        // Extraer modelos únicos
+        const modelos = Array.from(new Set(resultado.clientes.map(cliente => cliente.modelo)))
+          .filter(modelo => modelo)
+          .sort();
+        setModelosDisponibles(modelos);
+
+        // Extraer años únicos
+        const años = Array.from(new Set(resultado.clientes.map(cliente => cliente.año.toString())))
+          .filter(año => año)
+          .sort((a, b) => Number(b) - Number(a));
+        setAñosDisponibles(años);
+
+        // Extraer asesores APS únicos
+        const asesores = Array.from(new Set(resultado.clientes.map(cliente => cliente.aps)))
+          .filter((asesor): asesor is string => asesor !== undefined && asesor !== null)
+          .sort();
+        setAsesoresDisponibles(asesores);
       }
 
       console.log(`Cargados ${resultado.clientes.length} registros de ${resultado.total} totales`);
@@ -350,11 +219,15 @@ function App() {
           agencias: metadatos.agencias.length,
           modelos: metadatos.modelos.length,
           años: metadatos.años.length,
-          paquetes: metadatos.paquetes.length
+          paquetes: metadatos.paquetes.length,
+          asesores: metadatos.asesores.length
         });
 
         // Actualizar los estados con los metadatos completos
         setAgenciasDisponibles(metadatos.agencias);
+        setModelosDisponibles(metadatos.modelos);
+        setAñosDisponibles(metadatos.años);
+        setAsesoresDisponibles(metadatos.asesores);
 
         // Inicializar los checkboxes con todos los valores activados
         const agenciasObj: AgenciasType = {};
@@ -376,6 +249,27 @@ function App() {
           }
         });
         setPaquetesSeleccionados(paquetesObj);
+
+        // Inicializar checkboxes de modelos
+        const modelosObj: { [key: string]: boolean } = {};
+        metadatos.modelos.forEach(modelo => {
+          modelosObj[modelo] = true;
+        });
+        setModelosSeleccionados(modelosObj);
+
+        // Inicializar checkboxes de años
+        const añosObj: { [key: string]: boolean } = {};
+        metadatos.años.forEach(año => {
+          añosObj[año] = true;
+        });
+        setAñosSeleccionados(añosObj);
+
+        // Inicializar checkboxes de asesores APS
+        const apsObj: APSType = {};
+        metadatos.asesores.forEach(asesor => {
+          apsObj[asesor] = true;
+        });
+        setAPSSeleccionados(apsObj);
 
         // Ahora cargar todos los datos
         await cargarDatosPaginados(1);
@@ -452,15 +346,8 @@ function App() {
     }
   };
 
-  // Inicializar el estado de los asesores APS seleccionados
-  const [apsSeleccionados, setAPSSeleccionados] = useState<APSType>(() => {
-    const inicial: APSType = {};
-    asesorAPS.forEach(aps => {
-      inicial[aps] = true;
-    });
-    return inicial;
-  });
-
+  // Inicializar el estado de los asesores APS seleccionados - ahora se hace dinámicamente
+  const [apsSeleccionados, setAPSSeleccionados] = useState<APSType>({});
 
 
   useEffect(() => {
@@ -496,35 +383,56 @@ function App() {
         paquetesObj[paquete] = true;
       });
       setPaquetesSeleccionados(paquetesObj);
+
+      // Obtener modelos únicos del CSV
+      const modelos = Array.from(new Set(clientesData.map(cliente => cliente.modelo)))
+        .filter(modelo => modelo)
+        .sort();
+      setModelosDisponibles(modelos);
+
+      // Inicializar checkboxes de modelos
+      const modelosObj: { [key: string]: boolean } = {};
+      modelos.forEach(modelo => {
+        modelosObj[modelo] = true;
+      });
+      setModelosSeleccionados(modelosObj);
+
+      // Obtener años únicos del CSV
+      const años = Array.from(new Set(clientesData.map(cliente => cliente.año.toString())))
+        .filter(año => año)
+        .sort((a, b) => Number(b) - Number(a));
+      setAñosDisponibles(años);
+
+      // Inicializar checkboxes de años
+      const añosObj: { [key: string]: boolean } = {};
+      años.forEach(año => {
+        añosObj[año] = true;
+      });
+      setAñosSeleccionados(añosObj);
+
+      // Obtener asesores APS únicos del CSV
+      const asesores = Array.from(new Set(clientesData.map(cliente => cliente.aps)))
+        .filter((asesor): asesor is string => asesor !== undefined && asesor !== null)
+        .sort();
+      setAsesoresDisponibles(asesores);
+
+      // Inicializar checkboxes de asesores APS
+      const apsObj: APSType = {};
+      asesores.forEach(asesor => {
+        apsObj[asesor] = true;
+      });
+      setAPSSeleccionados(apsObj);
     }
   }, [clientesData]);
 
   // Inicializar el estado de los paquetes seleccionados
-  const [paquetesSeleccionados, setPaquetesSeleccionados] = useState<PaquetesType>(() => {
-    const inicial: PaquetesType = {};
-    paquetesDisponibles.forEach(paquete => {
-      inicial[paquete] = true;
-    });
-    return inicial;
-  });
+  const [paquetesSeleccionados, setPaquetesSeleccionados] = useState<PaquetesType>({});
 
-  // Estado para los modelos seleccionados
-  const [modelosSeleccionados, setModelosSeleccionados] = useState<{ [key: string]: boolean }>(() => {
-    const inicial: { [key: string]: boolean } = {};
-    modelosNissan.forEach(modelo => {
-      inicial[modelo] = true;
-    });
-    return inicial;
-  });
+  // Estado para los modelos seleccionados - inicializado dinámicamente
+  const [modelosSeleccionados, setModelosSeleccionados] = useState<{ [key: string]: boolean }>({});
 
-  // Estado para los años seleccionados
-  const [añosSeleccionados, setAñosSeleccionados] = useState<{ [key: string]: boolean }>(() => {
-    const inicial: { [key: string]: boolean } = {};
-    añosModelo.forEach(año => {
-      inicial[año] = true;
-    });
-    return inicial;
-  });
+  // Estado para los años seleccionados - inicializado dinámicamente
+  const [añosSeleccionados, setAñosSeleccionados] = useState<{ [key: string]: boolean }>({});
 
   // Función optimizada para detectar filtros activos
   const hayFiltrosActivos = (): boolean => {
@@ -617,14 +525,14 @@ function App() {
 
     // Modelos
     const resetModelos: { [key: string]: boolean } = {};
-    modelosNissan.forEach(modelo => {
+    modelosDisponibles.forEach(modelo => {
       resetModelos[modelo] = true;
     });
     setModelosSeleccionados(resetModelos);
 
     // Años
     const resetAños: { [key: string]: boolean } = {};
-    añosModelo.forEach(año => {
+    añosDisponibles.forEach(año => {
       resetAños[año] = true;
     });
     setAñosSeleccionados(resetAños);
@@ -638,7 +546,7 @@ function App() {
 
     // APS
     const resetAPS: APSType = {};
-    asesorAPS.forEach(aps => {
+    asesoresDisponibles.forEach(aps => {
       resetAPS[aps] = true;
     });
     setAPSSeleccionados(resetAPS);
@@ -1442,7 +1350,7 @@ function App() {
                 Modelo{' '}
                 {Object.values(modelosSeleccionados).filter(v => v).length > 0 && (
                   <span className="text-xs ml-1">
-                    ({Object.values(modelosSeleccionados).filter(v => v).length})
+                    ({Object.values(modelosSeleccionados).filter(v => v).length} de {modelosDisponibles.length})
                   </span>
                 )}
               </span>
@@ -1458,7 +1366,7 @@ function App() {
                 }}
               >
                 <div className="p-2">
-                  {modelosNissan.map((modelo) => (
+                  {modelosDisponibles.map((modelo) => (
                     <div key={modelo} className="flex items-center justify-between py-1">
                       <div className="flex items-center">
                         <input
@@ -1513,7 +1421,7 @@ function App() {
                 }}
               >
                 <div className="p-2">
-                  {añosModelo.map((año) => (
+                  {añosDisponibles.map((año) => (
                     <div key={año} className="flex items-center justify-between py-1">
                       <div className="flex items-center">
                         <input
@@ -1623,7 +1531,7 @@ function App() {
                 }}
               >
                 <div className="p-2">
-                  {asesorAPS.map((aps) => (
+                  {asesoresDisponibles.map((aps) => (
                     <div key={aps} className="flex items-center justify-between py-1">
                       <div className="flex items-center">
                         <input
