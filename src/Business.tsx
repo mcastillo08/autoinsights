@@ -480,17 +480,29 @@ function App() {
         console.log(`La página solicitada (${newPage}) excede el total disponible (${totalPaginas})`);
         // Opcionalmente podrías establecer la página al máximo disponible
         setCurrentPage(totalPaginas);
+        // Importante: Restablecemos isFiltering a false
+        setTimeout(() => {
+          setIsFiltering(false);
+        }, 300);
         return;
       }
 
       // Si estamos en rango, simplemente cambiamos la página
       setCurrentPage(newPage);
+      // Importante: Restablecemos isFiltering a false
+      setTimeout(() => {
+        setIsFiltering(false);
+      }, 300);
       return;
     }
 
     // Si no hay filtros activos, simplemente cambiamos la página
     // ya que todos los datos ya están cargados
     setCurrentPage(newPage);
+    // Importante: Restablecemos isFiltering a false
+    setTimeout(() => {
+      setIsFiltering(false);
+    }, 900);
   };
 
   const resetearFiltros = () => {
@@ -702,9 +714,10 @@ function App() {
     console.timeEnd('Filtrado');
 
     // Ocultar el loader después del filtrado
+    // Usando un timeout más largo para asegurar que el loader se oculte después de que el filtrado se complete
     setTimeout(() => {
       setIsFiltering(false);
-    }, 100); // Reducir el tiempo a 100ms para mejor respuesta
+    }, 400); // Aumentado a 400ms para dar más tiempo
 
     return result;
   }, [
@@ -1931,7 +1944,7 @@ function App() {
                           {item.orden || '—'}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {item.aps || 'ASESOR VIRTUAL'}
+                          {item.aps || '-'}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                           {item.total || '—'}
