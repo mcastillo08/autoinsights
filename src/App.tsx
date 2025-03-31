@@ -7,7 +7,6 @@ import { obtenerHistorialBusquedas, guardarEnHistorial } from './service/Histori
 import { debounce } from 'lodash';
 import FilterLoader from './FilterLoader';
 
-
 type AgenciasType = {
   [key: string]: boolean;
 };
@@ -279,8 +278,6 @@ function App() {
   const [todosLosDatosCargados, setTodosLosDatosCargados] = useState<boolean>(false);
 
 
-
-
   // Función para cargar datos paginados
   const cargarDatosPaginados = useCallback(async (pagina: number) => {
     setCargandoPagina(true);
@@ -395,7 +392,6 @@ function App() {
       inicializarDatos();
     }
   }, [cargarDatosPaginados, todosLosDatosCargados]);
-
 
 
   useEffect(() => {
@@ -602,7 +598,7 @@ function App() {
 
     // Resetear rango de días sin visita
     setMinDiasSinVisita(0);
-    setMaxDiasSinVisita(250);
+    setMaxDiasSinVisita(4800);
 
     // Resetear fechas
     setFechaInicio(null);
@@ -659,9 +655,6 @@ function App() {
 
     // Mostrar loader mientras se filtra
     setIsFiltering(true);
-
-    // Reducir la cantidad de logs para mejorar rendimiento
-    // console.log("Datos antes de filtrar:", clientesData.length);
 
     // Variables para contar rechazos por tipo de filtro
     let rechazadosPorSerie = 0;
@@ -823,7 +816,6 @@ function App() {
   ]);
 
   // Luego modifica getCurrentItems para usar el dato memoizado
-  // Versión mejorada de getCurrentItems
   const getCurrentItems = (): Cliente[] => {
     // Si estamos cargando, mostrar un indicador
     if (isLoading || cargandoPagina) {
@@ -891,7 +883,6 @@ function App() {
       [aps]: !prev[aps]
     }));
   };
-
 
   // Función para seleccionar solamente un APS
   const handleSolamenteAPS = (aps: string) => {
