@@ -14,7 +14,7 @@ interface ExportCSVButtonProps {
 const ExportCSVButton: React.FC<ExportCSVButtonProps> = ({
     tableData,
     maxRows = 700,
-    filename = 'BDBDC-CARTERA',
+    filename = 'Business Intelligence',
     disabled = false
 }) => {
     const [isExporting, setIsExporting] = useState<boolean>(false);
