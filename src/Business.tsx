@@ -138,15 +138,33 @@ function App() {
       // Se cambia el parámetro precargaCompleta a true para cargar todos los datos
       const resultado = await obtenerClientesPaginados(pagina, itemsPerPage, true);
 
-      // Guardamos todos los datos en el estado
-      setClientesData(resultado.clientes);
+      // MODIFICACIÓN: Ordenar los datos por fecha de última visita de manera descendente (más reciente primero)
+      const datosOrdenados = [...resultado.clientes].sort((a, b) => {
+        // Si ambos tienen fecha de última visita, comparar fechas
+        if (a.ultimaVisita && b.ultimaVisita) {
+          return b.ultimaVisita.getTime() - a.ultimaVisita.getTime();
+        }
+        // Si solo a tiene fecha, a va primero
+        else if (a.ultimaVisita) {
+          return -1;
+        }
+        // Si solo b tiene fecha, b va primero
+        else if (b.ultimaVisita) {
+          return 1;
+        }
+        // Si ninguno tiene fecha, mantener el orden original
+        return 0;
+      });
+
+      // Guardamos todos los datos ordenados en el estado
+      setClientesData(datosOrdenados);
       setTotalRegistros(resultado.total);
       setTodosLosDatosCargados(true);
 
       // Actualizar filtros con todos los datos disponibles
-      if (resultado.clientes.length > 0) {
+      if (datosOrdenados.length > 0) {
         // Extraer agencias únicas
-        const agencias = Array.from(new Set(resultado.clientes.map(cliente => cliente.agencia)))
+        const agencias = Array.from(new Set(datosOrdenados.map(cliente => cliente.agencia)))
           .filter(agencia => agencia)
           .sort();
         setAgenciasDisponibles(agencias);
@@ -161,7 +179,7 @@ function App() {
         setAgenciasSeleccionadas(agenciasObj);
 
         // Extraer paquetes únicos
-        const paquetes = Array.from(new Set(resultado.clientes.map(cliente => cliente.paquete || 'null')))
+        const paquetes = Array.from(new Set(datosOrdenados.map(cliente => cliente.paquete || 'null')))
           .filter(paquete => paquete)
           .sort();
         setPaquetesDisponibles(paquetes);
@@ -176,25 +194,25 @@ function App() {
         setPaquetesSeleccionados(paquetesObj);
 
         // Extraer modelos únicos
-        const modelos = Array.from(new Set(resultado.clientes.map(cliente => cliente.modelo)))
+        const modelos = Array.from(new Set(datosOrdenados.map(cliente => cliente.modelo)))
           .filter(modelo => modelo)
           .sort();
         setModelosDisponibles(modelos);
 
         // Extraer años únicos
-        const años = Array.from(new Set(resultado.clientes.map(cliente => cliente.año.toString())))
+        const años = Array.from(new Set(datosOrdenados.map(cliente => cliente.año.toString())))
           .filter(año => año)
           .sort((a, b) => Number(b) - Number(a));
         setAñosDisponibles(años);
 
         // Extraer asesores APS únicos
-        const asesores = Array.from(new Set(resultado.clientes.map(cliente => cliente.aps)))
+        const asesores = Array.from(new Set(datosOrdenados.map(cliente => cliente.aps)))
           .filter((asesor): asesor is string => asesor !== undefined && asesor !== null)
           .sort();
         setAsesoresDisponibles(asesores);
       }
 
-      console.log(`Cargados ${resultado.clientes.length} registros de ${resultado.total} totales`);
+      console.log(`Cargados ${datosOrdenados.length} registros de ${resultado.total} totales`);
       return true;
     } catch (error) {
       console.error('Error al cargar los datos:', error);
@@ -205,6 +223,7 @@ function App() {
       setIsLoading(false);
     }
   }, [itemsPerPage]);
+
 
   // Efecto para cargar datos iniciales
   useEffect(() => {

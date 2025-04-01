@@ -20,7 +20,6 @@ const ExportCSVButton: React.FC<ExportCSVButtonProps> = ({
     const [isExporting, setIsExporting] = useState<boolean>(false);
 
     // Función para normalizar números de teléfono (eliminar +52)
-    // Función para normalizar números de teléfono (eliminar completamente prefijos)
     const normalizePhone = (phone: string): string => {
         if (!phone || typeof phone !== 'string' || phone === '-') return '';
 
