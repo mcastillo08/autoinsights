@@ -50,7 +50,7 @@ const ExportCSVButton: React.FC<ExportCSVButtonProps> = ({
         return '';
     };
 
-    // Preparar los datos para exportación según el formato requerido
+
     // Preparar los datos para exportación según el formato requerido
     const prepareDataForExport = (data: Array<any>): Array<any> => {
         // Limitar a máximo la cantidad de filas especificada
@@ -59,7 +59,7 @@ const ExportCSVButton: React.FC<ExportCSVButtonProps> = ({
         return limitedData.map(row => {
             // Crear un nuevo objeto con los campos en el formato solicitado
             return {
-                name: row.contacto || '',
+                name: row.nombreFactura || '', // Cambiado de row.contacto a row.nombreFactura
                 phone: getFirstAvailablePhone(row), // Ahora devolverá solo el número limpio
                 email: '',
                 email2: '',
@@ -73,9 +73,9 @@ const ExportCSVButton: React.FC<ExportCSVButtonProps> = ({
                 industry: '',
                 website: '',
                 AGENCIA: row.agencia || '',
-                VIN: '',
+                VIN: row.serie || '',
                 MODELO: row.modelo || '',
-                'AÑO DEL VIN': '',
+                'AÃƒâ€˜O DEL VIN': row.año ? row.año.toString() : '',
                 'COLOR DEL VEHICULO': '',
                 'ULTIMA VISITA': '',
                 PERIODO: '',
@@ -85,7 +85,6 @@ const ExportCSVButton: React.FC<ExportCSVButtonProps> = ({
         });
     };
 
-    // Función para manejar la exportación
     // Función para manejar la exportación
     const handleExport = async () => {
         try {
