@@ -7,15 +7,15 @@ const AppRoutes = () => {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Ruta principal, redirige al dashboard */}
-        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+        {/* Ruta principal, redirige a Business */}
+        <Route path="/" element={<Navigate to="/business" replace />} />
         
         {/* Ruta de login pública */}
         <Route path="/login" element={<Login />} />
         
-        {/* Ruta protegida del dashboard */}
+        {/* Ruta protegida de Business */}
         <Route 
-          path="/dashboard" 
+          path="/business" 
           element={
             <ProtectedRoute>
               <Business />
@@ -23,8 +23,8 @@ const AppRoutes = () => {
           } 
         />
         
-        {/* Cualquier otra ruta redirige al dashboard */}
-        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+        {/* Cualquier otra ruta redirige a Business */}
+        <Route path="*" element={<Navigate to="/business" replace />} />
       </Routes>
     </BrowserRouter>
   );

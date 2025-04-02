@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { login, isAuthenticated } from '../service/AuthService';
 
+
 const Login = () => {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
@@ -12,10 +13,11 @@ const Login = () => {
   // Verificar si el usuario ya está autenticado al cargar el componente
   useEffect(() => {
     if (isAuthenticated()) {
-      navigate('/dashboard');
+      navigate('/business-intelligence');
     }
   }, [navigate]);
 
+  // En src/components/Login.tsx
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage('');
@@ -24,9 +26,9 @@ const Login = () => {
     try {
       const userData = await login(email, password);
       console.log('Inicio de sesión exitoso como:', userData.firstName, userData.lastName);
-      
-      // Redirigir al dashboard después del login exitoso
-      navigate('/dashboard');
+
+      // Cambiar a /business en lugar de /dashboard
+      navigate('/business');
     } catch (error) {
       console.error('Error de inicio de sesión:', error);
       setErrorMessage(error instanceof Error ? error.message : 'Error al conectar con el servidor. Por favor intente más tarde.');
@@ -137,7 +139,7 @@ const Login = () => {
               required
             />
           </div>
-          
+
           {errorMessage && (
             <div style={{ color: '#ff6b6b', marginBottom: '1rem', textAlign: 'center' }}>
               {errorMessage}
@@ -161,7 +163,7 @@ const Login = () => {
           >
             {isLoading ? 'Procesando...' : 'Iniciar sesión'}
           </button>
-          
+
           <div style={{ marginTop: '1.5rem', textAlign: 'center', color: '#aaa', fontSize: '0.9rem' }}>
             AUTO INSIGHTS © {new Date().getFullYear()}
           </div>

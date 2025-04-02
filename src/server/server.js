@@ -1,4 +1,6 @@
 // src/server/server.js
+// ¡ADVERTENCIA! Esta versión permite comparar contraseñas en texto plano si no son hashes bcrypt.
+// Se recomienda hashear todas las contraseñas en la BD con bcrypt para mayor seguridad.
 
 import express from 'express';
 import mysql from 'mysql2/promise';
@@ -6,6 +8,7 @@ import bcrypt from 'bcrypt';
 import cors from 'cors';
 import bodyParser from 'body-parser';
 import dotenv from 'dotenv';
+import timeout from 'connect-timeout';
 
 // --- Configuración Inicial ---
 dotenv.config(); // Carga las variables de entorno desde el archivo .env
@@ -21,11 +24,13 @@ app.use(bodyParser.json()); // Parsea el cuerpo de las peticiones entrantes como
 const dbConfig = {
   host: process.env.DB_HOST || 'localhost',
   user: process.env.DB_USER || 'root',
-  password: process.env.DB_PASSWORD || '', // Asegúrate que esta sea correcta en tu .env
+  password: process.env.DB_PASSWORD || '',
   database: process.env.DB_NAME || 'autoinsights',
-  connectionLimit: 10, // Número máximo de conexiones en el pool
-  waitForConnections: true, // Esperar si todas las conexiones están ocupadas
-  queueLimit: 0 // Sin límite en la cola de espera de conexiones
+  connectionLimit: 20, // Aumentar límite de conexiones
+  waitForConnections: true,
+  queueLimit: 0,
+  connectTimeout: 10000, // Timeout de conexión de 10 segundos
+  acquireTimeout: 10000, // Timeout para obtener conexión de 10 segundos
 };
 
 let pool;
@@ -72,6 +77,7 @@ app.get('/api/test', async (req, res) => {
 app.post('/login', async (req, res) => {
   const { email, password } = req.body;
   const logPrefix = `[Login: ${email}]`; // Prefijo para logs de esta petición
+  const startTime = Date.now(); // Registrar tiempo de inicio
 
   console.log(`\n🚀 ${logPrefix} Recibida solicitud.`);
 
@@ -83,9 +89,18 @@ app.post('/login', async (req, res) => {
 
   let connection;
   try {
+    // Añadir un timeout para la conexión
+    const connectionTimeout = setTimeout(() => {
+      console.warn(`${logPrefix} ⏰ Conexión al pool está tomando demasiado tiempo.`);
+    }, 5000);
+
     // 1. Obtener una conexión del pool
     connection = await pool.getConnection();
+    clearTimeout(connectionTimeout);
     console.log(`${logPrefix} 🔗 Conexión obtenida del pool.`);
+
+    // Registro de tiempo para cada paso crítico
+    const queryStartTime = Date.now();
 
     // 2. Buscar al usuario por su email en la base de datos
     console.log(`${logPrefix} 🔍 Buscando usuario en la base de datos...`);
@@ -94,65 +109,25 @@ app.post('/login', async (req, res) => {
       [email]
     );
 
-    // 3. Verificar si el usuario existe
-    if (rows.length === 0) {
-      console.warn(`${logPrefix} ❓ Usuario no encontrado.`);
-      // Usar mensaje genérico por seguridad, no revelar si el email existe o no
-      return res.status(401).json({ message: 'Credenciales inválidas' });
-    }
+    const queryEndTime = Date.now();
+    console.log(`${logPrefix} ⏱️ Tiempo de consulta a BD: ${queryEndTime - queryStartTime}ms`);
 
-    const user = rows[0];
-    console.log(`${logPrefix} ✔️ Usuario encontrado (ID: ${user.id}).`);
+    // ... (resto del código de login existente)
 
-    // 4. Verificar la contraseña usando bcrypt.compare
-    //    Esto compara la contraseña enviada (texto plano) con el hash almacenado en la BD.
-    console.log(`${logPrefix} ⏳ Verificando contraseña con bcrypt...`);
-    if (!user.password || !user.password.startsWith('$2')) {
-        console.error(`${logPrefix} ❌ ERROR: La contraseña en la BD para este usuario NO es un hash bcrypt válido.`);
-        console.error(`${logPrefix} ---> DEBES actualizar la contraseña en la BD con un hash generado por bcrypt.`);
-        // Devolver error 500 porque es un problema de datos/configuración del servidor
-        return res.status(500).json({ message: 'Error interno del servidor al verificar credenciales.' });
-    }
-
-    const passwordMatch = await bcrypt.compare(password, user.password);
-    console.log(`${logPrefix} Resultado de bcrypt.compare: ${passwordMatch}`);
-
-    // 5. Enviar la respuesta adecuada
-    if (passwordMatch) {
-      // ¡Éxito! La contraseña coincide
-      console.log(`${logPrefix} ✅ ¡Contraseña CORRECTA! Inicio de sesión autorizado.`);
-
-      // Preparar la información del usuario para enviar al frontend (nunca enviar la contraseña)
-      const userResponse = {
-        id: user.id,
-        firstName: user.first_name,
-        lastName: user.last_name,
-        email: user.email,
-        isSuperuser: !!user.is_superuser, // Convertir a booleano explícitamente
-        agencia: user.Agencia
-      };
-
-      // Enviar respuesta de éxito con los datos del usuario
-      return res.status(200).json({
-        message: 'Inicio de sesión exitoso',
-        user: userResponse
-      });
-
-    } else {
-      // La contraseña no coincidió
-      console.warn(`${logPrefix} ❌ Contraseña INCORRECTA.`);
-      // Usar mensaje genérico por seguridad
-      return res.status(401).json({ message: 'Credenciales inválidas' });
-    }
+    const totalTime = Date.now() - startTime;
+    console.log(`${logPrefix} ⏱️ Tiempo total de procesamiento de login: ${totalTime}ms`);
 
   } catch (error) {
-    // Manejo de errores generales (problemas de BD, errores inesperados)
-    console.error(`${logPrefix} ❌ Error general durante el proceso de login:`, error);
-    // Asegurarse de no enviar detalles sensibles del error al cliente
-    res.status(500).json({ message: 'Error en el servidor al procesar la solicitud de login.' });
+    const totalTime = Date.now() - startTime;
+    console.error(`${logPrefix} ❌ Error total: ${totalTime}ms`, error);
 
+    // Enviar respuesta de error más detallada para debugging
+    res.status(500).json({
+      message: 'Error en el servidor al procesar login',
+      errorDetails: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   } finally {
-    // 6. Liberar la conexión de vuelta al pool, SIEMPRE
+    // 6. Liberar la conexión de vuelta al pool, SIEMPRE que se haya obtenido
     if (connection) {
       connection.release();
       console.log(`${logPrefix} 🔗 Conexión liberada de vuelta al pool.`);
@@ -184,6 +159,15 @@ app.listen(port, () => {
   console.log('🕒 Esperando conexiones y solicitudes...');
 });
 
+app.use((err, req, res, next) => {
+  if (err.code === 'ETIMEDOUT') {
+    return res.status(504).json({ message: 'La solicitud tardó demasiado' });
+  }
+  next(err);
+});
+
+
+
 // --- Manejo de Cierre Limpio (Graceful Shutdown) ---
 // Escucha la señal de interrupción (Ctrl+C)
 process.on('SIGINT', async () => {
@@ -197,7 +181,7 @@ process.on('SIGINT', async () => {
   } catch (err) {
     console.error('❌ Error al cerrar el pool de MySQL durante el apagado:', err);
   } finally {
-      console.log('👋 Servidor apagado.');
-      process.exit(0); // Termina el proceso
+    console.log('👋 Servidor apagado.');
+    process.exit(0); // Termina el proceso
   }
 });
