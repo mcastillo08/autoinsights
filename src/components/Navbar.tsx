@@ -1,7 +1,5 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
 import AgenciaSelector, { AgenciaNombre } from './AgenciaSelector';
-import { logout, getCurrentUser } from '../service/AuthService';
 
 interface NavbarProps {
   agenciaActual: AgenciaNombre;
@@ -10,14 +8,6 @@ interface NavbarProps {
 }
 
 const Navbar: React.FC<NavbarProps> = ({ agenciaActual, onAgenciaChange, isLoading }) => {
-  const navigate = useNavigate();
-  const currentUser = getCurrentUser();
-
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
-  };
-
   return (
     <div className="bg-[#673AB7] shadow-md">
       <div className="w-full px-0">
@@ -36,20 +26,8 @@ const Navbar: React.FC<NavbarProps> = ({ agenciaActual, onAgenciaChange, isLoadi
             />
           </div>
           
-          {/* Información de usuario y botón de cierre de sesión */}
-          <div className="absolute right-5 flex items-center space-x-4">
-            {currentUser && (
-              <div className="text-white text-xs">
-                <span className="font-medium">{currentUser.firstName} {currentUser.lastName}</span>
-              </div>
-            )}
-            <button
-              onClick={handleLogout}
-              className="bg-white bg-opacity-20 hover:bg-opacity-30 text-white px-3 py-1 rounded-md text-sm transition-colors"
-            >
-              Cerrar sesión
-            </button>
-          </div>
+          {/* Espacio a la derecha para equilibrar */}
+          <div className="w-16"></div>
         </div>
       </div>
     </div>

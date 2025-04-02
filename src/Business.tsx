@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo, useCallback, JSX } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { Search, ChevronDown, Calendar } from 'lucide-react';
 import DiasSinVisitaRangeSlider from './components/DiasSinVisitaRangeSlider';
 import { obtenerClientesPaginados, Cliente, limpiarCacheCSV, obtenerMetadatosFiltros, establecerAgenciaActual, configuracionAgencias } from './CsvDataService';
