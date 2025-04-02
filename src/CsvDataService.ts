@@ -1,14 +1,18 @@
 import Papa from 'papaparse';
+import { AgenciaNombre } from './components/AgenciaSelector';
 
 // Interfaz ClienteCSV (sin cambios)
 export interface ClienteCSV {
   ORDEN: number;
   SERIE: string;
-  Modelo: string;
+  Modelo?: string;
+  MODELO?: string;
   ANIO_VIN: number;
-  NOMBRE_FAC: string;
+  NOMBRE_FAC?: string;
+  NOMBRE_FACT?: string;
   CONTACTO: string;
-  AGENCI: string;
+  AGENCI?: string;
+  AGENCIA?: string;
   CELULAR: string;
   TELEFONO?: string;
   OFICINA?: string;
@@ -18,6 +22,7 @@ export interface ClienteCSV {
   ULT_VISITA?: string;
   DIAS_NOSHOW?: number;
   FECHA_FAC?: string;
+  FECHA_FACT?: string;
 }
 
 // Definimos las interfaces para TypeScript
@@ -41,21 +46,99 @@ export interface Cliente {
   diasSinVenir: number;    // Nuevo campo para los días sin venir
 }
 
+// Configuración para cada agencia
+export const configuracionAgencias = {
+  'Gran Auto': {
+    archivo: 'granauto.csv',
+    encoding: 'cp1252',  // Codificación específica para Gran Auto
+    mapeo: {
+      modelo: 'Modelo',
+      nombreFactura: 'NOMBRE_FAC',
+      agencia: 'AGENCI',
+      fechaUltimaVisita: 'ULT_VISITA'
+    }
+  },
+  'Gasme': {
+    archivo: 'gasme.csv',
+    encoding: 'utf-8',
+    mapeo: {
+      modelo: 'MODELO',
+      nombreFactura: 'NOMBRE_FAC',
+      agencia: 'AGENCI',
+      fechaUltimaVisita: 'FECHA_FAC'
+    }
+  },
+  'Sierra': {
+    archivo: 'sierra.csv',
+    encoding: 'utf-8',
+    mapeo: {
+      modelo: 'MODELO',
+      nombreFactura: 'NOMBRE_FAC',
+      agencia: 'AGENCIA',
+      fechaUltimaVisita: 'ULT_VISITA'
+    }
+  },
+  'Huerpel': {
+    archivo: 'huerpel.csv',
+    encoding: 'utf-8',
+    mapeo: {
+      modelo: 'MODELO',
+      nombreFactura: 'NOMBRE_FACT',
+      agencia: 'AGENCIA',
+      fechaUltimaVisita: 'ULT_VISITA'
+    }
+  },
+  'Del Bravo': {
+    archivo: 'delbravo.csv',
+    encoding: 'utf-8',
+    mapeo: {
+      modelo: 'MODELO',
+      nombreFactura: 'NOMBRE_FAC',
+      agencia: 'AGENCIA',
+      fechaUltimaVisita: 'ULT_VISITA'
+    }
+  }
+};
+
 // Sistema de caché para evitar recargar todo el CSV
+let archivoActual: string | null = null;
 let csvTextCache: string | null = null;
 let clientesDataCache: Cliente[] | null = null;
 let totalRegistros = 0;
 let paginasServidas: Record<number, boolean> = {}; // Registro de páginas ya servidas
 let todosCargados = false; // Flag para saber si ya se cargaron todos los datos
 
+// Función para establecer la agencia actual
+export const establecerAgenciaActual = (agencia: AgenciaNombre): void => {
+  const config = configuracionAgencias[agencia];
+  
+  // Si es una agencia diferente, limpiar el caché
+  if (archivoActual !== config.archivo) {
+    limpiarCacheCSV();
+    archivoActual = config.archivo;
+    console.log(`Agencia cambiada a: ${agencia}, archivo: ${config.archivo}`);
+  }
+};
+
 // Nueva función mejorada para obtener una porción de los datos
 // Modificada para cargar todos los datos de una vez
 export const obtenerClientesPaginados = async (
   pagina: number,
   elementosPorPagina: number,
-  precargaCompleta: boolean = true // Cambiado a true por defecto
+  precargaCompleta: boolean = true, // Cambiado a true por defecto
+  agencia?: AgenciaNombre // Parámetro opcional para especificar la agencia
 ): Promise<{ clientes: Cliente[], total: number }> => {
   try {
+    // Si se especifica una agencia, establecerla
+    if (agencia) {
+      establecerAgenciaActual(agencia);
+    }
+
+    // Si no tenemos un archivo actual configurado, usar el de Gran Auto por defecto
+    if (!archivoActual) {
+      establecerAgenciaActual('Gran Auto');
+    }
+
     // Si no tenemos los datos en caché, los cargamos
     if (!clientesDataCache) {
       console.log('No hay caché, cargando datos CSV...');
@@ -126,7 +209,7 @@ export const obtenerClientesPaginados = async (
   }
 };
 
-export const obtenerMetadatosFiltros = async (): Promise<{
+export const obtenerMetadatosFiltros = async (agencia?: AgenciaNombre): Promise<{
   agencias: string[];
   modelos: string[];
   años: string[];
@@ -134,6 +217,16 @@ export const obtenerMetadatosFiltros = async (): Promise<{
   asesores: string[];
 }> => {
   try {
+    // Si se especifica una agencia, establecerla
+    if (agencia) {
+      establecerAgenciaActual(agencia);
+    }
+
+    // Si no tenemos un archivo actual configurado, usar el de Gran Auto por defecto
+    if (!archivoActual) {
+      establecerAgenciaActual('Gran Auto');
+    }
+
     // Si no tenemos los datos en caché, los cargamos
     if (!clientesDataCache) {
       console.log('No hay caché, cargando datos CSV para metadatos...');
@@ -173,7 +266,6 @@ export const obtenerMetadatosFiltros = async (): Promise<{
       .sort();
 
     console.log(`Metadatos extraídos: ${agencias.length} agencias, ${modelos.length} modelos, ${años.length} años, ${paquetes.length} paquetes, ${asesores.length} asesores`);
-    console.log('Agencias disponibles:', agencias);
 
     return {
       agencias,
@@ -188,8 +280,13 @@ export const obtenerMetadatosFiltros = async (): Promise<{
   }
 };
 
-export const obtenerTodasAgencias = async (): Promise<string[]> => {
+export const obtenerTodasAgencias = async (agencia?: AgenciaNombre): Promise<string[]> => {
   try {
+    // Si se especifica una agencia, establecerla
+    if (agencia) {
+      establecerAgenciaActual(agencia);
+    }
+
     // Si no tenemos los datos en caché, los cargamos
     if (!clientesDataCache) {
       console.log('No hay caché, cargando datos CSV para obtener todas las agencias...');
@@ -221,14 +318,20 @@ export const obtenerTodasAgencias = async (): Promise<string[]> => {
 
 // Función para mapear de CSV a Cliente (con mejor manejo de tipos)
 const mapearClienteCSVaCliente = (clienteCSV: ClienteCSV, index: number): Cliente => {
+  // Obtener la configuración de la agencia actual
+  const agenciaActual = Object.values(configuracionAgencias).find(config => config.archivo === archivoActual) 
+    || configuracionAgencias['Gran Auto'];
+  
   // Convertir fecha de última visita a objeto Date si existe
   let ultimaVisita: Date | undefined = undefined;
 
-  // Primero intentamos con FECHA_FAC para la última visita
-  if (clienteCSV.FECHA_FAC) {
+  // Campo de fecha varía según la agencia
+  const campoFecha = clienteCSV.FECHA_FAC || clienteCSV.FECHA_FACT || clienteCSV.ULT_VISITA;
+  
+  if (campoFecha) {
     try {
       // Verificar si es un string JSON o un string directo
-      let fechaStr = clienteCSV.FECHA_FAC;
+      let fechaStr = campoFecha;
 
       // Si parece ser un objeto JSON
       if (typeof fechaStr === 'string' && (fechaStr.includes('value') || fechaStr.startsWith('{'))) {
@@ -256,41 +359,7 @@ const mapearClienteCSVaCliente = (clienteCSV: ClienteCSV, index: number): Client
         }
       }
     } catch (error) {
-      console.error('Error al convertir FECHA_FAC:', error, clienteCSV.FECHA_FAC);
-    }
-  }
-  // Si no hay FECHA_FAC, intentamos con ULT_VISITA (mantener compatibilidad)
-  else if (clienteCSV.ULT_VISITA) {
-    try {
-      let fechaStr = clienteCSV.ULT_VISITA;
-
-      // Si parece ser un objeto JSON
-      if (typeof fechaStr === 'string' && (fechaStr.includes('value') || fechaStr.startsWith('{'))) {
-        try {
-          const fechaObj = JSON.parse(fechaStr);
-          if (fechaObj.value) {
-            fechaStr = fechaObj.value;
-          }
-        } catch (e) {
-          // Si falla el parsing JSON, usar el string tal cual
-          console.warn('Error al parsear JSON de fecha ULT_VISITA:', e);
-        }
-      }
-
-      // Ahora procesamos la fecha según su formato
-      if (typeof fechaStr === 'string') {
-        if (fechaStr.includes('-')) {
-          // Formato YYYY-MM-DD
-          const [año, mes, dia] = fechaStr.split('-').map(num => parseInt(num, 10));
-          ultimaVisita = new Date(año, mes - 1, dia);
-        } else if (fechaStr.includes('/')) {
-          // Formato DD/MM/YYYY
-          const [dia, mes, año] = fechaStr.split('/').map(num => parseInt(num, 10));
-          ultimaVisita = new Date(año, mes - 1, dia);
-        }
-      }
-    } catch (error) {
-      console.error('Error al convertir ULT_VISITA:', error, clienteCSV.ULT_VISITA);
+      console.error('Error al convertir fecha:', error, campoFecha);
     }
   }
 
@@ -299,15 +368,24 @@ const mapearClienteCSVaCliente = (clienteCSV: ClienteCSV, index: number): Client
     ultimaVisita = undefined;
   }
 
+  // Modelo puede estar en diferentes campos según la agencia
+  const modelo = clienteCSV.Modelo || clienteCSV.MODELO || '';
+  
+  // Nombre de la factura puede estar en diferentes campos según la agencia
+  const nombreFactura = clienteCSV.NOMBRE_FAC || clienteCSV.NOMBRE_FACT || '';
+  
+  // Agencia puede estar en diferentes campos según la agencia
+  const agencia = clienteCSV.AGENCI || clienteCSV.AGENCIA || '';
+
   // Asegurarse de que los campos string no sean undefined
   return {
     id: index + 1, // Asignar un ID secuencial
     serie: clienteCSV.SERIE || '',
-    modelo: clienteCSV.Modelo || '',
+    modelo: modelo || '',
     año: clienteCSV.ANIO_VIN ? Number(clienteCSV.ANIO_VIN) : 0,
-    nombreFactura: clienteCSV.NOMBRE_FAC || '',
+    nombreFactura: nombreFactura || '',
     contacto: clienteCSV.CONTACTO || '',
-    agencia: clienteCSV.AGENCI || '',
+    agencia: agencia || '',
     celular: clienteCSV.CELULAR || '',
     telefono: clienteCSV.TELEFONO || undefined,
     tOficina: clienteCSV.OFICINA || undefined,
@@ -324,48 +402,42 @@ const mapearClienteCSVaCliente = (clienteCSV: ClienteCSV, index: number): Client
 
 // Función para cargar los datos completos del CSV con mejor manejo de errores
 const cargarDatosCSVCompleto = async (intentos = 3): Promise<void> => {
-  if (clientesDataCache) {
+  if (clientesDataCache && archivoActual === archivoActual) {
     console.log('Usando datos en caché');
     return;
   }
 
   try {
-    console.log('Cargando archivo CSV completo...');
-
-    // Intenta cargar el archivo desde diferentes rutas
-    let response;
-    const rutas = [
-      '/granauto.csv',
-      './granauto.csv',
-      'granauto.csv',
-      '/src/assets/granauto.csv',
-      '../granauto.csv',
-      'assets/granauto.csv'
-    ];
-
-    let rutaExitosa = '';
-    for (const ruta of rutas) {
-      try {
-        response = await fetch(ruta, {
-          // Añadir opción para no usar caché del navegador
-          cache: 'no-store',
-          headers: {
-            'Pragma': 'no-cache',
-            'Cache-Control': 'no-cache'
-          }
-        });
-        if (response.ok) {
-          rutaExitosa = ruta;
-          console.log(`Archivo CSV cargado desde ${ruta}`);
-          break;
-        }
-      } catch (e) {
-        console.error(`Error al cargar desde ${ruta}:`, e);
-      }
+    // Verificar que tengamos un archivo actual seleccionado
+    if (!archivoActual) {
+      throw new Error('No se ha seleccionado un archivo CSV para cargar');
     }
 
-    if (!response || !response.ok) {
-      throw new Error(`No se pudo cargar el archivo CSV desde ninguna ubicación. Rutas intentadas: ${rutas.join(', ')}`);
+    console.log(`Cargando archivo CSV: ${archivoActual}`);
+
+    // Obtener la configuración de la agencia actual
+    const agenciaActual = Object.entries(configuracionAgencias)
+      .find(([_, config]) => config.archivo === archivoActual);
+    
+    if (!agenciaActual) {
+      throw new Error(`No se encontró configuración para el archivo ${archivoActual}`);
+    }
+    
+    const [nombreAgencia, config] = agenciaActual;
+    console.log(`Usando configuración de agencia: ${nombreAgencia}`);
+
+    // Intentar cargar el archivo
+    const response = await fetch(archivoActual, {
+      // Añadir opción para no usar caché del navegador
+      cache: 'no-store',
+      headers: {
+        'Pragma': 'no-cache',
+        'Cache-Control': 'no-cache'
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`Error al cargar el archivo ${archivoActual}: ${response.status} - ${response.statusText}`);
     }
 
     // Almacenar el texto del CSV en caché
@@ -374,7 +446,7 @@ const cargarDatosCSVCompleto = async (intentos = 3): Promise<void> => {
     // Verificar que el contenido sea realmente un CSV
     if (csvTextCache.trim().startsWith('<!doctype html>') || csvTextCache.trim().startsWith('<html>')) {
       console.error('El contenido devuelto es HTML, no un CSV');
-      throw new Error(`El contenido devuelto es HTML, no un CSV. Ruta: ${rutaExitosa}`);
+      throw new Error(`El contenido devuelto es HTML, no un CSV. Archivo: ${archivoActual}`);
     }
 
     // Verificar que haya contenido real
@@ -456,9 +528,14 @@ const cargarDatosCSVCompleto = async (intentos = 3): Promise<void> => {
 };
 
 // Mantener esta función para compatibilidad con código existente
-export const cargarDatosCSV = async (): Promise<Cliente[]> => {
+export const cargarDatosCSV = async (agencia?: AgenciaNombre): Promise<Cliente[]> => {
   try {
     console.log('Solicitud para cargar todos los datos del CSV');
+
+    // Si se especifica una agencia, establecerla
+    if (agencia) {
+      establecerAgenciaActual(agencia);
+    }
 
     // Si tenemos los datos en caché, los devolvemos directamente
     if (clientesDataCache) {

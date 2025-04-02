@@ -1,12 +1,14 @@
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { Search, ChevronDown, Calendar } from 'lucide-react';
 import DiasSinVisitaRangeSlider from './components/DiasSinVisitaRangeSlider';
-import { obtenerClientesPaginados, Cliente, limpiarCacheCSV, obtenerMetadatosFiltros } from './CsvDataService';
+import { obtenerClientesPaginados, Cliente, limpiarCacheCSV, obtenerMetadatosFiltros, establecerAgenciaActual, configuracionAgencias } from './CsvDataService';
 import FiltroPorSerieAvanzado from './components/FiltroPorSerieAvanzado';
 import { obtenerHistorialBusquedas, guardarEnHistorial } from './service/HistorialBusquedas';
 import { debounce } from 'lodash';
 import FilterLoader from './components/FilterLoader';
 import ExportCSVButton from './components/ExportCSVButton';
+import Navbar from './components/Navbar';
+import { AgenciaNombre } from './components/AgenciaSelector';
 
 type AgenciasType = {
   [key: string]: boolean;
@@ -101,6 +103,11 @@ function App() {
   const [agenciasSeleccionadas, setAgenciasSeleccionadas] = useState<AgenciasType>(() => ({}));
   const [historialBusquedas, setHistorialBusquedas] = useState<string[]>([]);
 
+  // estados de HUD de Agencias
+  // Estado para la agencia seleccionada (NUEVO)
+  const [agenciaActual, setAgenciaActual] = useState<AgenciaNombre>('Gran Auto');
+  const [cambiandoAgencia, setCambiandoAgencia] = useState<boolean>(false);
+
   // estados de boton siguiente y anterior
   const [currentPage, setCurrentPage] = useState<number>(1);
   const itemsPerPage = 700;
@@ -130,6 +137,31 @@ function App() {
   const [todosLosDatosCargados, setTodosLosDatosCargados] = useState<boolean>(false);
 
 
+
+
+  // Manejador para cambiar de agencia
+  const handleAgenciaChange = useCallback((nuevaAgencia: AgenciaNombre) => {
+    if (nuevaAgencia === agenciaActual) return;
+
+    console.log(`Cambiando de agencia: ${agenciaActual} -> ${nuevaAgencia}`);
+
+    setCambiandoAgencia(true);
+    setIsLoading(true);
+    setErrorCarga(null);
+    setTodosLosDatosCargados(false);
+
+    // Limpiar todos los datos y filtros actuales
+    setClientesData([]);
+    setCurrentPage(1);
+
+    // Actualizar el estado de la agencia
+    setAgenciaActual(nuevaAgencia);
+
+    // Establecer la nueva agencia en el servicio de datos
+    establecerAgenciaActual(nuevaAgencia);
+
+    // La carga de datos se realizará en el efecto useEffect que observa todosLosDatosCargados
+  }, [agenciaActual]);
   // Función para cargar datos paginados
   const cargarDatosPaginados = useCallback(async (pagina: number) => {
     setCargandoPagina(true);
@@ -221,8 +253,10 @@ function App() {
     } finally {
       setCargandoPagina(false);
       setIsLoading(false);
+      setCambiandoAgencia(false);
     }
-  }, [itemsPerPage]);
+  }, [itemsPerPage, agenciaActual]); // Agregamos agenciaActual como dependencia
+
 
 
   // Efecto para cargar datos iniciales
@@ -233,7 +267,7 @@ function App() {
       try {
         // Primero cargar los metadatos para los filtros
         console.log('Cargando metadatos de filtros...');
-        const metadatos = await obtenerMetadatosFiltros();
+        const metadatos = await obtenerMetadatosFiltros(agenciaActual);
 
         console.log('Metadatos obtenidos:', {
           agencias: metadatos.agencias.length,
@@ -305,7 +339,7 @@ function App() {
     if (!todosLosDatosCargados) {
       inicializarDatos();
     }
-  }, [cargarDatosPaginados, todosLosDatosCargados]);
+  }, [cargarDatosPaginados, todosLosDatosCargados, agenciaActual, cambiandoAgencia]);
 
 
   useEffect(() => {
@@ -1234,11 +1268,20 @@ function App() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-red-600 mx-auto mb-4"></div>
-          <h2 className="text-xl font-semibold text-gray-700">Cargando datos...</h2>
-          <p className="text-gray-500">Por favor espere mientras se cargan los datos del sistema.</p>
+      <div className="min-h-screen flex flex-col bg-gray-50">
+        {/* Siempre mostrar la barra de navegación, incluso durante la carga */}
+        <Navbar
+          agenciaActual={agenciaActual}
+          onAgenciaChange={handleAgenciaChange}
+          isLoading={isLoading || cambiandoAgencia}
+        />
+
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-[#673AB7] mx-auto mb-4"></div>
+            <h2 className="text-xl font-semibold text-gray-700">Cargando datos de {agenciaActual}...</h2>
+            <p className="text-gray-500">Por favor espere mientras se cargan los datos del sistema.</p>
+          </div>
         </div>
       </div>
     );
@@ -1246,24 +1289,45 @@ function App() {
 
   if (errorCarga) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center max-w-lg p-6 bg-white rounded-lg shadow-md">
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 text-red-500 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-          </svg>
-          <h2 className="text-xl font-semibold text-gray-700 mb-2">Error al cargar datos</h2>
-          <p className="text-gray-500 mb-4">{errorCarga}</p>
-          <p className="text-sm text-gray-500 mb-4">Asegúrate de que el archivo granauto.csv está en la carpeta correcta y tiene el formato adecuado.</p>
-          <button
-            onClick={() => window.location.reload()}
-            className="px-4 py-2 bg-red-600 text-white rounded-md text-sm font-medium hover:bg-red-700"
-          >
-            Reintentar
-          </button>
+      <div className="min-h-screen flex flex-col bg-gray-50">
+        {/* Siempre mostrar la barra de navegación, incluso durante un error */}
+        <Navbar
+          agenciaActual={agenciaActual}
+          onAgenciaChange={handleAgenciaChange}
+          isLoading={isLoading || cambiandoAgencia}
+        />
+
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center max-w-lg p-6 bg-white rounded-lg shadow-md">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 text-red-500 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            <h2 className="text-xl font-semibold text-gray-700 mb-2">Error al cargar datos</h2>
+            <p className="text-gray-500 mb-4">{errorCarga}</p>
+            <p className="text-sm text-gray-500 mb-4">Asegúrate de que el archivo {configuracionAgencias[agenciaActual].archivo} está en la carpeta correcta y tiene el formato adecuado.</p>
+            <div className="flex justify-center space-x-4">
+              <button
+                onClick={() => handleAgenciaChange('Gran Auto')}
+                className="px-4 py-2 bg-[#673AB7] text-white rounded-md text-sm font-medium hover:bg-[#5E35B1]"
+              >
+                Cambiar a Gran Auto
+              </button>
+              <button
+                onClick={() => {
+                  limpiarCacheCSV();
+                  window.location.reload();
+                }}
+                className="px-4 py-2 bg-red-600 text-white rounded-md text-sm font-medium hover:bg-red-700"
+              >
+                Reintentar
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     );
   }
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Modal overlay para cerrar el menú cuando se hace clic fuera de él */}
@@ -1274,6 +1338,15 @@ function App() {
           onClick={cerrarTodosFiltros}
         ></div>
       )}
+
+      {/* Navbar con selector de agencias */}
+      <Navbar
+        agenciaActual={agenciaActual}
+        onAgenciaChange={handleAgenciaChange}
+        isLoading={isLoading || cambiandoAgencia}
+      />
+
+
       {/* Header */}
       <header className="bg-white border-b border-gray-200 px-6 py-4">
         <div className="flex items-center justify-between">
@@ -1281,7 +1354,7 @@ function App() {
             <img src="/img/logo.png" alt="Nissan Logo" className="h-10" />
             <div className="text-gray-600">
               <h2 className="font-medium">Business Intelligence</h2>
-              <h3 className="text-sm">3.2 Extractor de BD.</h3>
+              <h3 className="text-sm">3.2 Extractor de BD - {agenciaActual}</h3>
             </div>
           </div>
 
@@ -2068,18 +2141,18 @@ function App() {
                 </button>
 
                 <button
-                  className="ml-2 px-3 py-1 bg-gray-600 text-white rounded-md text-sm font-medium"
+                  className="ml-2 px-3 py-1 bg-[#673AB7] text-white rounded-md text-sm font-medium hover:bg-[#5E35B1]"
                   onClick={() => {
                     if (cargandoPagina) return;
                     limpiarCacheCSV();
                     setClientesData([]);
                     setCurrentPage(1);
                     setIsLoading(true);
-                    cargarDatosPaginados(1);
+                    setTodosLosDatosCargados(false); // Forzar recarga desde el efecto
                   }}
                   disabled={cargandoPagina}
                 >
-                  Recargar
+                  Recargar Datos de {agenciaActual}
                 </button>
               </div>
             </div>
