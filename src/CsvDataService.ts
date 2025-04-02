@@ -335,12 +335,12 @@ const cargarDatosCSVCompleto = async (intentos = 3): Promise<void> => {
     // Intenta cargar el archivo desde diferentes rutas
     let response;
     const rutas = [
-      '/urcsv.csv',
-      './urcsv.csv',
-      'urcsv.csv',
-      '/src/assets/urcsv.csv',
-      '../urcsv.csv',
-      'assets/urcsv.csv'
+      '/granauto.csv',
+      './granauto.csv',
+      'granauto.csv',
+      '/src/assets/granauto.csv',
+      '../granauto.csv',
+      'assets/granauto.csv'
     ];
 
     let rutaExitosa = '';

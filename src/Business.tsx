@@ -1253,7 +1253,7 @@ function App() {
           </svg>
           <h2 className="text-xl font-semibold text-gray-700 mb-2">Error al cargar datos</h2>
           <p className="text-gray-500 mb-4">{errorCarga}</p>
-          <p className="text-sm text-gray-500 mb-4">Asegúrate de que el archivo urcsv.csv está en la carpeta correcta y tiene el formato adecuado.</p>
+          <p className="text-sm text-gray-500 mb-4">Asegúrate de que el archivo granauto.csv está en la carpeta correcta y tiene el formato adecuado.</p>
           <button
             onClick={() => window.location.reload()}
             className="px-4 py-2 bg-red-600 text-white rounded-md text-sm font-medium hover:bg-red-700"
