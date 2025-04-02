@@ -10,25 +10,24 @@ interface NavbarProps {
 const Navbar: React.FC<NavbarProps> = ({ agenciaActual, onAgenciaChange, isLoading }) => {
   return (
     <div className="bg-[#673AB7] shadow-md">
-      <div className="container mx-auto px-6">
-        <div className="flex items-center justify-between h-14">
-          {/* Sección izquierda: Servicio */}
-          <div className="flex items-center space-x-4">
-            
+      <div className="w-full px-0">
+        <div className="flex items-center h-14 relative">
+          {/* Logo posicionado en el extremo izquierdo sin margen */}
+          <div className="absolute left-5">
+            <img src="/img/icon.png" alt="Logo" className="h-16 w-auto" />
           </div>
 
-          {/* Sección central: Selector de Agencias */}
-          <div className="min-w-32">
+          {/* Selector de Agencias centrado */}
+          <div className="mx-auto w-40">
             <AgenciaSelector 
               agenciaActual={agenciaActual} 
               onAgenciaChange={onAgenciaChange}
               cargando={isLoading}
             />
           </div>
-
-          {/* Sección derecha: Bases de datos */}
-          <div className="flex items-center space-x-4">
-          </div>
+          
+          {/* Espacio a la derecha para equilibrar */}
+          <div className="w-16"></div>
         </div>
       </div>
     </div>
