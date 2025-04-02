@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import icon from '../assets/icon.png'; // Ajusta la ruta según tu estructura de archivos
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { login, isAuthenticated } from '../service/AuthService';
 
 const Login = () => {
   const navigate = useNavigate();
@@ -9,41 +9,27 @@ const Login = () => {
   const [errorMessage, setErrorMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
+  // Verificar si el usuario ya está autenticado al cargar el componente
+  useEffect(() => {
+    if (isAuthenticated()) {
+      navigate('/dashboard');
+    }
+  }, [navigate]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage('');
     setIsLoading(true);
 
     try {
-      const response = await fetch('http://localhost:3001/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        // Guardamos la información del usuario en localStorage
-        localStorage.setItem('user', JSON.stringify(data.user));
-        
-        console.log('Inicio de sesión exitoso como:', data.user.firstName, data.user.lastName);
-        
-        // Redirigir según el tipo de usuario
-        if (data.user.isSuperuser) {
-          navigate('/admin'); // Ruta para administradores
-        } else {
-          navigate('/dashboard'); // Ruta para usuarios regulares
-        }
-      } else {
-        // Credenciales inválidas
-        setErrorMessage(data.message || 'Usuario o contraseña incorrectos');
-      }
+      const userData = await login(email, password);
+      console.log('Inicio de sesión exitoso como:', userData.firstName, userData.lastName);
+      
+      // Redirigir al dashboard después del login exitoso
+      navigate('/dashboard');
     } catch (error) {
-      console.error('Error al conectar con el servidor:', error);
-      setErrorMessage('Error al conectar con el servidor. Por favor intente más tarde.');
+      console.error('Error de inicio de sesión:', error);
+      setErrorMessage(error instanceof Error ? error.message : 'Error al conectar con el servidor. Por favor intente más tarde.');
     } finally {
       setIsLoading(false);
     }
@@ -70,7 +56,7 @@ const Login = () => {
         }}
       >
         <img
-          src={icon}
+          src="/img/icon.png"
           alt="Auto Insights Logo"
           style={{ maxWidth: '80%', maxHeight: '200px' }}
         />

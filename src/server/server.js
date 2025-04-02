@@ -109,6 +109,21 @@ app.post('/login', async (req, res) => {
   }
 });
 
+// Añade esto en server.js
+app.get('/api/check-users', async (req, res) => {
+  try {
+    const [rows] = await pool.execute('SELECT id, email FROM users LIMIT 5');
+    res.json({ success: true, users: rows });
+  } catch (error) {
+    console.error('Error al verificar usuarios:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Error al verificar usuarios',
+      error: error.message 
+    });
+  }
+});
+
 // Iniciar el servidor
 app.listen(port, () => {
   console.log(`Servidor ejecutándose en http://localhost:${port}`);
