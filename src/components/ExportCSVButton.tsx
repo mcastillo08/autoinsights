@@ -101,8 +101,8 @@ const ExportCSVButton: React.FC<ExportCSVButtonProps> = ({
                 quotes: true     // Forzar comillas en todos los campos
             });
 
-            // Crear un blob y descargar el archivo
-            const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8-sig' }); // Añadir BOM para Excel
+            // Crear un blob y descargar el archivo como CSV estándar (sin BOM UTF-8)
+            const blob = new Blob([csv], { type: 'text/csv' }); // Sin charset UTF-8 y sin BOM
             saveAs(blob, `${filename}.csv`);
 
         } catch (error) {
