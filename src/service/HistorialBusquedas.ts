@@ -21,6 +21,7 @@ export const obtenerHistorialBusquedas = (): string[] => {
 /**
  * Guarda un término en el historial de búsquedas
  */
+
 export const guardarEnHistorial = (termino: string): string[] => {
   try {
     if (!termino.trim()) return obtenerHistorialBusquedas();

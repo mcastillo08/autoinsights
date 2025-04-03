@@ -110,9 +110,15 @@ let todosCargados = false; // Flag para saber si ya se cargaron todos los datos
 
 // Función para establecer la agencia actual
 export const establecerAgenciaActual = (agencia: AgenciaNombre): void => {
+  // Verificar que la agencia existe en la configuración
+  if (!configuracionAgencias[agencia]) {
+    console.error(`Agencia no válida: ${agencia}. Usando 'Gran Auto' por defecto.`);
+    agencia = 'Gran Auto'; // Valor por defecto
+  }
+  
   const config = configuracionAgencias[agencia];
   
-  // Si es una agencia diferente, limpiar el caché
+  // Resto del código existente...
   if (archivoActual !== config.archivo) {
     limpiarCacheCSV();
     archivoActual = config.archivo;

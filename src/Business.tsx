@@ -108,23 +108,29 @@ function App() {
   // estados de HUD de Agencias
   // Estado para la agencia seleccionada (NUEVO)
   const [agenciaActual, setAgenciaActual] = useState<AgenciaNombre>(() => {
-    // Obtener el usuario actual y las agencias a las que tiene acceso
     const currentUser = getCurrentUser();
     const accessibleAgencias = getAccessibleAgencias();
 
-    // Si el usuario tiene una agencia específica asignada, usarla como predeterminada
+    console.log('Current user:', currentUser);
+    console.log('Accessible agencias:', accessibleAgencias);
+
+    // Comprobar si el usuario y las agencias existen
+    if (!currentUser || !accessibleAgencias || accessibleAgencias.length === 0) {
+      return 'Gran Auto'; // Valor predeterminado seguro
+    }
+
+    // El resto de tu lógica...
     if (currentUser?.agencia && accessibleAgencias.includes(currentUser.agencia as AgenciaNombre)) {
       return currentUser.agencia as AgenciaNombre;
     }
 
-    // Si el usuario puede acceder a múltiples agencias, usar la primera disponible
     if (accessibleAgencias.length > 0) {
       return accessibleAgencias[0] as AgenciaNombre;
     }
 
-    // Valor predeterminado si todo lo demás falla
     return 'Gran Auto';
   });
+
   const [cambiandoAgencia, setCambiandoAgencia] = useState<boolean>(false);
   // estados de boton siguiente y anterior
   const [currentPage, setCurrentPage] = useState<number>(1);
