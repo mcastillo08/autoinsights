@@ -1,77 +1,111 @@
-interface User {
-    id: number;
-    firstName: string;
-    lastName: string;
-    email: string;
-    isSuperuser: boolean;
-    agencia?: string;
+export interface User {
+  id: number;
+  firstName: string;
+  lastName: string;
+  email: string;
+  isSuperuser: boolean;
+  agencia?: string | null;
+}
+
+const USER_KEY = 'autoinsights_user';
+const API_URL = 'http://localhost:3001';
+
+/**
+ * Inicia sesión con las credenciales proporcionadas
+ */
+export const login = async (email: string, password: string): Promise<User> => {
+  try {
+    console.log(`Intentando login con email: ${email}`);
+    
+    const response = await fetch(`${API_URL}/login`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ email, password }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      console.error('Error en respuesta:', data);
+      throw new Error(data.message || 'Error al iniciar sesión');
+    }
+
+    // Guardar información del usuario en localStorage
+    localStorage.setItem(USER_KEY, JSON.stringify(data.user));
+
+    console.log('Login exitoso:', data.user);
+    return data.user;
+  } catch (error) {
+    console.error('Error en inicio de sesión:', error);
+    throw error;
+  }
+};
+
+/**
+ * Cierra la sesión del usuario actual
+ */
+export const logout = (): void => {
+  localStorage.removeItem(USER_KEY);
+  // Redirigir a la página de inicio de sesión se maneja en el componente
+};
+
+/**
+ * Verifica si hay un usuario autenticado
+ */
+export const isAuthenticated = (): boolean => {
+  const user = localStorage.getItem(USER_KEY);
+  return user !== null;
+};
+
+/**
+ * Obtiene la información del usuario autenticado
+ */
+export const getCurrentUser = (): User | null => {
+  try {
+    const userJson = localStorage.getItem(USER_KEY);
+    if (userJson) {
+      return JSON.parse(userJson);
+    }
+    return null;
+  } catch (error) {
+    console.error('Error al obtener usuario actual:', error);
+    logout(); // Si hay error al leer el usuario, cerrar sesión
+    return null;
+  }
+};
+
+/**
+ * Verifica si el usuario tiene acceso a una agencia específica
+ */
+export const canAccessAgencia = (agenciaNombre: string): boolean => {
+  const currentUser = getCurrentUser();
+  
+  if (!currentUser) return false;
+  
+  // Si es superusuario o no tiene agencia asignada (NULL en la DB), puede acceder a cualquier agencia
+  if (currentUser.isSuperuser || currentUser.agencia === null) {
+    return true;
   }
   
-  const USER_KEY = 'autoinsights_user';
-  const API_URL = 'http://localhost:3001';
+  // Si no es superusuario, solo puede acceder a su agencia asignada
+  return currentUser.agencia === agenciaNombre;
+};
+
+/**
+ * Obtiene las agencias a las que el usuario tiene acceso
+ */
+export const getAccessibleAgencias = (): string[] => {
+  const currentUser = getCurrentUser();
   
-  /**
-   * Inicia sesión con las credenciales proporcionadas
-   */
-  export const login = async (email: string, password: string): Promise<User> => {
-    try {
-      console.log(`Intentando login con email: ${email}`);
-      
-      const response = await fetch(`${API_URL}/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password }),
-      });
+  if (!currentUser) return [];
   
-      const data = await response.json();
+  // Si es superusuario o no tiene agencia asignada (NULL en la DB), puede acceder a todas
+  if (currentUser.isSuperuser || currentUser.agencia === null) {
+    return ['Gran Auto', 'Gasme', 'Sierra', 'Huerpel', 'Del Bravo'];
+  }
   
-      if (!response.ok) {
-        console.error('Error en respuesta:', data);
-        throw new Error(data.message || 'Error al iniciar sesión');
-      }
-  
-      // Guardar información del usuario en localStorage
-      localStorage.setItem(USER_KEY, JSON.stringify(data.user));
-  
-      console.log('Login exitoso:', data.user);
-      return data.user;
-    } catch (error) {
-      console.error('Error en inicio de sesión:', error);
-      throw error;
-    }
-  };
-  
-  /**
-   * Cierra la sesión del usuario actual
-   */
-  export const logout = (): void => {
-    localStorage.removeItem(USER_KEY);
-    // Redirigir a la página de inicio de sesión se maneja en el componente
-  };
-  
-  /**
-   * Verifica si hay un usuario autenticado
-   */
-  export const isAuthenticated = (): boolean => {
-    const user = localStorage.getItem(USER_KEY);
-    return user !== null;
-  };
-  
-  /**
-   * Obtiene la información del usuario autenticado
-   */
-  export const getCurrentUser = (): User | null => {
-    try {
-      const userJson = localStorage.getItem(USER_KEY);
-      if (userJson) {
-        return JSON.parse(userJson);
-      }
-      return null;
-    } catch (error) {
-      console.error('Error al obtener usuario actual:', error);
-      logout(); // Si hay error al leer el usuario, cerrar sesión
-      return null;
-    }
-  };
+  // Si no es superusuario, solo puede acceder a su agencia asignada
+  return currentUser.agencia ? [currentUser.agencia] : [];
+};

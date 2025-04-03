@@ -2,6 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import AgenciaSelector, { AgenciaNombre } from './AgenciaSelector';
 import { logout, getCurrentUser } from '../service/AuthService';
+import { IoLogOut } from "react-icons/io5";
 
 interface NavbarProps {
   agenciaActual: AgenciaNombre;
@@ -45,9 +46,10 @@ const Navbar: React.FC<NavbarProps> = ({ agenciaActual, onAgenciaChange, isLoadi
             )}
             <button
               onClick={handleLogout}
-              className="bg-white bg-opacity-20 hover:bg-opacity-30 text-white px-3 py-1 rounded-md text-sm transition-colors"
+              className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded-md text-sm transition-colors flex items-center space-x-1"
             >
-              Cerrar sesión
+              <IoLogOut className="text-white" />
+              <span>Cerrar sesión</span>
             </button>
           </div>
         </div>

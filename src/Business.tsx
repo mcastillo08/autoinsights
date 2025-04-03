@@ -9,6 +9,7 @@ import FilterLoader from './components/FilterLoader';
 import ExportCSVButton from './components/ExportCSVButton';
 import Navbar from './components/Navbar';
 import { AgenciaNombre } from './components/AgenciaSelector';
+import { getCurrentUser, getAccessibleAgencias } from './service/AuthService';
 
 type AgenciasType = {
   [key: string]: boolean;
@@ -103,11 +104,29 @@ function App() {
   const [agenciasSeleccionadas, setAgenciasSeleccionadas] = useState<AgenciasType>(() => ({}));
   const [historialBusquedas, setHistorialBusquedas] = useState<string[]>([]);
 
+
+
   // estados de HUD de Agencias
   // Estado para la agencia seleccionada (NUEVO)
-  const [agenciaActual, setAgenciaActual] = useState<AgenciaNombre>('Gran Auto');
-  const [cambiandoAgencia, setCambiandoAgencia] = useState<boolean>(false);
+  const [agenciaActual, setAgenciaActual] = useState<AgenciaNombre>(() => {
+    // Obtener el usuario actual y las agencias a las que tiene acceso
+    const currentUser = getCurrentUser();
+    const accessibleAgencias = getAccessibleAgencias();
 
+    // Si el usuario tiene una agencia específica asignada, usarla como predeterminada
+    if (currentUser?.agencia && accessibleAgencias.includes(currentUser.agencia as AgenciaNombre)) {
+      return currentUser.agencia as AgenciaNombre;
+    }
+
+    // Si el usuario puede acceder a múltiples agencias, usar la primera disponible
+    if (accessibleAgencias.length > 0) {
+      return accessibleAgencias[0] as AgenciaNombre;
+    }
+
+    // Valor predeterminado si todo lo demás falla
+    return 'Gran Auto';
+  });
+  const [cambiandoAgencia, setCambiandoAgencia] = useState<boolean>(false);
   // estados de boton siguiente y anterior
   const [currentPage, setCurrentPage] = useState<number>(1);
   const itemsPerPage = 700;
@@ -1909,7 +1928,7 @@ function App() {
           <div className="flex space-x-3">
             <ExportCSVButton
               tableData={getCurrentItems()}
-              maxRows={500}
+              maxRows={700}
               disabled={isLoading || cargandoPagina || filteredData.length === 0}
             />
             <button
