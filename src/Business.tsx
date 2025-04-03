@@ -10,6 +10,7 @@ import ExportCSVButton from './components/ExportCSVButton';
 import Navbar from './components/Navbar';
 import { AgenciaNombre } from './components/AgenciaSelector';
 import { getCurrentUser, getAccessibleAgencias } from './service/AuthService';
+import { getAgencyLogoUrl } from './utilis/AgencyLogoHelper';
 
 type AgenciasType = {
   [key: string]: boolean;
@@ -103,8 +104,6 @@ function App() {
   const [asesoresDisponibles, setAsesoresDisponibles] = useState<string[]>([]);
   const [agenciasSeleccionadas, setAgenciasSeleccionadas] = useState<AgenciasType>(() => ({}));
   const [historialBusquedas, setHistorialBusquedas] = useState<string[]>([]);
-
-
 
   // estados de HUD de Agencias
   // Estado para la agencia seleccionada (NUEVO)
@@ -1367,10 +1366,20 @@ function App() {
 
 
       {/* Header */}
+      {/* Header */}
       <header className="bg-white border-b border-gray-200 px-6 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
-            <img src="/img/logo.png" alt="Nissan Logo" className="h-10" />
+            {/* Logo dinámico según la agencia actual */}
+            <img
+              src={getAgencyLogoUrl(agenciaActual)}
+              alt={`${agenciaActual} Logo`}
+              className="h-10"
+              onError={(e) => {
+                // Si hay error al cargar la imagen, usar el logo por defecto
+                e.currentTarget.src = "/img/icon.png";
+              }}
+            />
             <div className="text-gray-600">
               <h2 className="font-medium">Business Intelligence</h2>
               <h3 className="text-sm">3.2 Extractor de BD - {agenciaActual}</h3>
