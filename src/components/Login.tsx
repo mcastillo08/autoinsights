@@ -1,13 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { login, isAuthenticated } from '../service/AuthService';
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+
+  // Verificar si hay un mensaje de sesión expirada en los parámetros de la URL
+  const sessionExpiredParam = new URLSearchParams(location.search).get('sessionExpired');
+  const [sessionExpired, setSessionExpired] = useState(sessionExpiredParam === 'true');
 
   useEffect(() => {
     if (isAuthenticated()) {
@@ -19,6 +24,7 @@ const Login: React.FC = () => {
     e.preventDefault();
     setErrorMessage('');
     setIsLoading(true);
+    setSessionExpired(false); // Limpiar mensaje de sesión expirada cuando se intenta un nuevo login
 
     try {
       const userData = await login(email, password);
@@ -54,6 +60,13 @@ const Login: React.FC = () => {
       <div className="w-[500px] flex flex-col justify-center px-16 bg-black">
         <h2 className="text-3xl font-bold text-white mb-2">Iniciar sesión</h2>
         <p className="text-gray-400 mb-8">Inicia sesión para acceder a tu cuenta</p>
+
+        {/* Mensaje de sesión expirada */}
+        {sessionExpired && (
+          <div className="bg-yellow-500 text-black p-3 rounded-md mb-6 text-sm">
+            Tu sesión ha expirado por inactividad. Por favor inicia sesión nuevamente.
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>

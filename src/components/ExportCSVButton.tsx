@@ -1,8 +1,6 @@
 import React, { useState } from 'react';
 import Papa from 'papaparse';
 import { saveAs } from 'file-saver';
-// Importar el icono correcto
-
 
 interface ExportCSVButtonProps {
     tableData: Array<any>;

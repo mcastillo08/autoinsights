@@ -8,6 +8,8 @@ export interface User {
 }
 
 const USER_KEY = 'autoinsights_user';
+const SESSION_TIMESTAMP_KEY = 'autoinsights_session_timestamp';
+const SESSION_TIMEOUT = 15 * 60 * 1000; // 15 minutos en milisegundos
 const API_URL = 'http://localhost:3001';
 
 /**
@@ -34,6 +36,9 @@ export const login = async (email: string, password: string): Promise<User> => {
 
     // Guardar información del usuario en localStorage
     localStorage.setItem(USER_KEY, JSON.stringify(data.user));
+    
+    // Inicializar el timestamp de la sesión
+    updateSessionTimestamp();
 
     console.log('Login exitoso:', data.user);
     return data.user;
@@ -48,15 +53,50 @@ export const login = async (email: string, password: string): Promise<User> => {
  */
 export const logout = (): void => {
   localStorage.removeItem(USER_KEY);
+  localStorage.removeItem(SESSION_TIMESTAMP_KEY);
   // Redirigir a la página de inicio de sesión se maneja en el componente
 };
 
 /**
- * Verifica si hay un usuario autenticado
+ * Actualiza el timestamp de la última actividad de la sesión
+ */
+export const updateSessionTimestamp = (): void => {
+  localStorage.setItem(SESSION_TIMESTAMP_KEY, Date.now().toString());
+};
+
+/**
+ * Comprueba si la sesión ha expirado por inactividad
+ */
+export const hasSessionExpired = (): boolean => {
+  const timestampStr = localStorage.getItem(SESSION_TIMESTAMP_KEY);
+  
+  // Si no hay timestamp, la sesión ha expirado
+  if (!timestampStr) return true;
+  
+  const timestamp = parseInt(timestampStr, 10);
+  const now = Date.now();
+  
+  // Verificar si han pasado más de 15 minutos desde la última actividad
+  return now - timestamp > SESSION_TIMEOUT;
+};
+
+/**
+ * Verifica si hay un usuario autenticado y que la sesión no haya expirado
  */
 export const isAuthenticated = (): boolean => {
   const user = localStorage.getItem(USER_KEY);
-  return user !== null;
+  
+  // Verificar si hay un usuario en localStorage
+  if (!user) return false;
+  
+  // Verificar si la sesión ha expirado
+  if (hasSessionExpired()) {
+    // Si la sesión expiró, hacer logout automático
+    logout();
+    return false;
+  }
+  
+  return true;
 };
 
 /**
@@ -64,6 +104,12 @@ export const isAuthenticated = (): boolean => {
  */
 export const getCurrentUser = (): User | null => {
   try {
+    // Verificar primero si la sesión ha expirado
+    if (hasSessionExpired()) {
+      logout();
+      return null;
+    }
+    
     const userJson = localStorage.getItem(USER_KEY);
     if (userJson) {
       return JSON.parse(userJson);
