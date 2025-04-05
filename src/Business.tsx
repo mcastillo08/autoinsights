@@ -1952,7 +1952,7 @@ function App() {
             >
               Resetear Filtros
             </button>
-            <button className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md text-sm font-medium transition duration-200">
+            <button className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm font-medium transition duration-200">
               Buscar
             </button>
           </div>
@@ -2175,7 +2175,8 @@ function App() {
                 </button>
 
                 <button
-                  className="ml-2 px-3 py-1 bg-[#673AB7] text-white rounded-md text-sm font-medium hover:bg-[#5E35B1]"
+                  className="ml-2 px-3 py-1 bg-gray-500 text-gray-100 rounded-md text-sm font-medium hover:bg-gray-300"
+
                   onClick={() => {
                     if (cargandoPagina) return;
                     limpiarCacheCSV();
