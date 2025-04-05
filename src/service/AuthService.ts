@@ -9,7 +9,7 @@ export interface User {
 
 const USER_KEY = 'autoinsights_user';
 const SESSION_TIMESTAMP_KEY = 'autoinsights_session_timestamp';
-const SESSION_TIMEOUT = 15 * 60 * 1000; // 15 minutos en milisegundos
+const SESSION_TIMEOUT = 15 * 60 * 15000; 
 const API_URL = 'http://localhost:3001';
 
 /**
